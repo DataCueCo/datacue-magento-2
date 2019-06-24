@@ -1,0 +1,11 @@
+<?php
+/**
+ * @var \Datacue\MagentoModule\Block\BaseTemplate $block
+ */
+$config = $block->getDataCueConfig();
+?>
+<script>
+window.datacueConfig = <?php echo json_encode($config) ?>;
+</script>
+<script src="https://cdn.datacue.co/js/datacue.js"></script>
+<script src="https://cdn.datacue.co/js/datacue-storefront.js"></script>

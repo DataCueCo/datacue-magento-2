@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+    <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Backend:etc/menu.xsd">
+        <menu>
+          <add id="DataCue_MagentoModule::datacue" title="DataCue" translate="title" module="DataCue_MagentoModule" parent="Magento_Backend::content" sortOrder="50" dependsOnModule="DataCue_MagentoModule" resource="DataCue_MagentoModule::settings"/>
+          <add id="DataCue_MagentoModule::datacue_settings" title="DataCue Settings" translate="title" module="DataCue_MagentoModule" parent="DataCue_MagentoModule::datacue" sortOrder="10" dependsOnModule="DataCue_MagentoModule" action="datacue_magento/setting" resource="DataCue_MagentoModule::setting"/>
+        </menu>
+    </config>

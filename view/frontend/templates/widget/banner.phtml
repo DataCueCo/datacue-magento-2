@@ -1,0 +1,11 @@
+<?php
+/**
+ * @var \DataCue\MagentoModule\Widget\Banner $block
+ */
+?>
+<?php if($block->getData('img') && $block->getData('link')): ?>
+  <div
+    data-dc-banners
+    data-dc-static-img="<?php echo $block->getData('img'); ?>"
+    data-dc-static-link="<?php echo $block->getData('link'); ?>"></div>
+<?php endif; ?>

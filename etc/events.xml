@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Event/etc/events.xsd">
+    <event name="controller_action_catalog_product_save_entity_after">
+        <observer name="action_product_saved" instance="DataCue\MagentoModule\Modules\Product" />
+    </event>
+    <event name="catalog_product_save_after">
+        <observer name="product_saved" instance="DataCue\MagentoModule\Modules\Product" />
+    </event>
+    <event name="catalog_product_delete_before">
+        <observer name="product_deleted" instance="DataCue\MagentoModule\Modules\Product" />
+    </event>
+    <event name="customer_save_before">
+        <observer name="user_before_saved" instance="DataCue\MagentoModule\Modules\User" />
+    </event>
+    <event name="customer_save_after">
+        <observer name="user_saved" instance="DataCue\MagentoModule\Modules\User" />
+    </event>
+    <event name="customer_delete_after">
+        <observer name="user_deleted" instance="DataCue\MagentoModule\Modules\User" />
+    </event>
+    <event name="sales_order_save_before">
+        <observer name="order_before_saved" instance="DataCue\MagentoModule\Modules\Order" />
+    </event>
+    <event name="sales_order_save_after">
+        <observer name="order_saved" instance="DataCue\MagentoModule\Modules\Order" />
+    </event>
+    <event name="sales_order_delete_after">
+        <observer name="order_deleted" instance="DataCue\MagentoModule\Modules\Order" />
+    </event>
+    <event name="controller_front_send_response_before">
+        <observer name="page_rendered" instance="DataCue\MagentoModule\Common\Page" />
+    </event>
+</config>

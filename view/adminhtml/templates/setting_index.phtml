@@ -1,0 +1,95 @@
+<?php
+/**
+ * @var \Datacue\MagentoModule\AdminPage\Setting $block
+ */
+$apiKey = $block->getApiKey();
+$apiSecret = $block->getApiSecret();
+$error = $this->getRequest()->getParam('status');
+?>
+<div id="datacue-tabs">
+  <ul>
+    <li><a href="#tabs-1">Settings</a></li>
+    <li><a href="#tabs-2">Sync Status</a></li>
+    <li><a href="#tabs-3">Logs</a></li>
+  </ul>
+  <div id="tabs-1">
+  <?php if ($error === 'success') { ?>
+      <p style="color: green">Success!</p>
+    <?php } ?>
+    <?php if ($error === 'authorized_error') { ?>
+      <p style="color: red">Incorrect API key or API secret, please make sure to copy/paste them <strong>exactly</strong> as you see from your dashboard.</p>
+    <?php } ?>
+    <?php if ($error === 'sync_fail') { ?>
+      <p style="color: red">The synchronization task failed, Please contact the administrator.</p>
+    <?php } ?>
+    <form style="font-size: 20px;" method="post" action="<?php echo $this->getUrl('datacue_magento/setting/save'); ?>">
+      <div style="margin: 10px 0;">
+        <label for="api_key" style="display: inline-block; width: 100px; text-align: right;">API key</label>
+        <input id="api_key" name="api_key" style="width: 300px;" value="<?php echo $apiKey ?>" />
+      </div>
+      <div style="margin: 10px 0;">
+        <label for="api_secret" style="display: inline-block; width: 100px; text-align: right;">API secret</label>
+        <input id="api_secret" name="api_secret" type="password" style="width: 300px;" value="<?php echo $apiSecret ?>" />
+      </div>
+      <input name="form_key" type="hidden" value="<?php /** @escapeNotVerified */ echo $this->getFormKey() ?>" />
+      <button class="ui-button ui-widget ui-corner-all" style="font-size: .8em; margin-left: 105px;">Save</button>
+    </form>
+    <div style="margin-top: 10px; padding-top: 20px; border-top: 1px solid #aaa;">
+      <a href="https://app.datacue.co" target="_blank" style="display: inline-block; text-decoration:none; background-color: #80ab4b; color: #fff; padding: 0 20px; height: 40px; border-radius: 20px; line-height: 40px; text-align: center;">LOGIN TO MY DATACUE DASHBOARD</a>
+      <div style="margin-top: 20px; font-size: 15px;">No account yet? Sign up <a href="https://app.datacue.co/en/sign-up" target="_blank" style="color: #8c5c85; font-weight: 600;">here</a></div>
+    </div>
+  </div>
+  <div id="tabs-2">
+    <table id="datacue-sync-status-table">
+      <thead>
+      <tr>
+        <th width="100">Data Type</th>
+        <th width="100">Total</th>
+        <th width="100">Number of pending</th>
+        <th width="100">Number of successes</th>
+        <th width="100">Number of failures</th>
+      </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+  <div id="tabs-3">
+    <p></p>
+  </div>
+</div>
+<script>
+  function getSyncStatus ($) {
+    $.ajax({
+      showLoader: true,
+      url: '<?php echo $this->getUrl('datacue_magento/sync/status'); ?>',
+      type: "POST",
+      data: {
+        form_key: FORM_KEY
+      },
+      dataType: 'json'
+    }).done(function (data) {
+      console.log('ajax', data);
+      var html = '';
+      Object.keys(data).forEach(function (key) {
+        html += '<tr>';
+        html += '<td align="center">' + key + '</td>';
+        html += '<td align="center">' + data[key].total + '</td>';
+        html += '<td align="center">' + (data[key].total - data[key].completed - data[key].failed) + '</td>';
+        html += '<td align="center">' + data[key].completed + '</td>';
+        html += '<td align="center">' + data[key].failed + '</td>';
+        html += '</tr>';
+      });
+      $("#datacue-sync-status-table tbody").html(html);
+    });
+  };
+  require([
+    'jquery',
+    'jquery/ui'
+  ], function($) {
+    $("#datacue-tabs").tabs();
+    getSyncStatus($);
+    setTimeout(function () {
+      getSyncStatus($);
+    }, 30000);
+  });
+</script>

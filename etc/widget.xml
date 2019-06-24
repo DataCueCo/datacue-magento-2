@@ -1,0 +1,19 @@
+<?xml version="1.0" ?>
+<widgets xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Widget:etc/widget.xsd">
+	<widget class="DataCue\MagentoModule\Widget\Banner" id="datacue_magento_banner">
+		<label>DataCue Banner</label>
+		<description>Display a banner of DataCue</description>
+		<parameters>
+			<parameter name="img" sort_order="10" visible="true" xsi:type="text">
+				<label>Banner Image</label>
+			</parameter>
+      <parameter name="link" sort_order="10" visible="true" xsi:type="text">
+				<label>Banner Link</label>
+			</parameter>
+		</parameters>
+	</widget>
+  <widget class="DataCue\MagentoModule\Widget\ProductCarousel" id="datacue_magento_product_carousel">
+		<label>DataCue Product Carousel</label>
+		<description>Display a product carousel of DataCue</description>
+	</widget>
+</widgets>
