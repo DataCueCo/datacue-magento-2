@@ -86,6 +86,9 @@ class Schedule
                     case 'orders':
                         $this->doOrdersJob($job['action'], $job['job']);
                         break;
+                    case 'events':
+                        $this->doEventJob($job['action'], $job['job']);
+                        break;
                     default:
                         break;
                 }
@@ -257,6 +260,31 @@ class Schedule
             case 'delete':
                 $res = $this->client->orders->delete($job->orderId);
                 Log::info('delete order response: ', $res);
+                break;
+            default:
+                break;
+        }
+    }
+
+    /**
+     * Do event job
+     * 
+     * @param $action
+     * @param $job
+     * @throws \DataCue\Exceptions\ClientException
+     * @throws \DataCue\Exceptions\ExceedBodySizeLimitationException
+     * @throws \DataCue\Exceptions\ExceedListDataSizeLimitationException
+     * @throws \DataCue\Exceptions\InvalidEnvironmentException
+     * @throws \DataCue\Exceptions\NetworkErrorException
+     * @throws \DataCue\Exceptions\RetryCountReachedException
+     * @throws \DataCue\Exceptions\UnauthorizedException
+     */
+    private function doEventJob($action, $job)
+    {
+        switch ($action) {
+            case 'track':
+                $res = $this->client->events->track($job->user, $job->event);
+                Log::info('track event response: ', $res);
                 break;
             default:
                 break;

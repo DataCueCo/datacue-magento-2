@@ -3,6 +3,9 @@
     <event name="controller_action_catalog_product_save_entity_after">
         <observer name="action_product_saved" instance="DataCue\MagentoModule\Modules\Product" />
     </event>
+    <event name="catalog_product_save_before">
+        <observer name="before_product_saved" instance="DataCue\MagentoModule\Modules\Product" />
+    </event>
     <event name="catalog_product_save_after">
         <observer name="product_saved" instance="DataCue\MagentoModule\Modules\Product" />
     </event>
@@ -29,5 +32,8 @@
     </event>
     <event name="controller_front_send_response_before">
         <observer name="page_rendered" instance="DataCue\MagentoModule\Common\Page" />
+    </event>
+    <event name="checkout_cart_save_after">
+        <observer name="cart_saved" instance="DataCue\MagentoModule\Modules\Product" />
     </event>
 </config>

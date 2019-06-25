@@ -5,6 +5,7 @@ namespace DataCue\MagentoModule\Modules;
 use Magento\Framework\App\ObjectManager;
 use Magento\Framework\Event\ObserverInterface;
 use DataCue\MagentoModule\Queue;
+use DataCue\MagentoModule\Utils\Log;
 
 class Product implements ObserverInterface
 {
@@ -145,12 +146,15 @@ class Product implements ObserverInterface
         return [];
     }
 
+    /**
+     * @var $product \Magento\Catalog\Model\Product
+     */
+    private $productBeforeSave;
+
     public function __construct()
     {
 
     }
-
-
 
     public function execute(\Magento\Framework\Event\Observer $observer)
     {
@@ -158,12 +162,20 @@ class Product implements ObserverInterface
             case 'controller_action_catalog_product_save_entity_after':
                 $this->onActionProductSaved($observer);
                 break;
+            case 'catalog_product_save_before':
+                $this->beforeModelProductSaved($observer);
+                break;
             case 'catalog_product_save_after':
                 $this->onModelProductSaved($observer);
                 break;
             case 'catalog_product_delete_before':
                 $this->onModelProductDeleted($observer);
                 break;
+            case 'catalog_product_import_bunch_delete_commit_before':
+                $this->onModelProductVariantsDeleted($observer);
+                break;
+            case 'checkout_cart_save_after':
+                $this->onCartSaved($observer);
             default:
                 break;
         }
@@ -177,12 +189,8 @@ class Product implements ObserverInterface
          */
         $product = $observer->getData('product');
 
-//        var_dump($product->getTypeId()); die();
-//
-//        $parentProduct = static::getParentProduct($product);
-
         if ($product->isObjectNew()) {
-            if ($product->getTypeId() === 'configurable' || $product->getTypeId() === 'simple') {
+            if ($product->getTypeId() === 'simple') {
                 Queue::addJob(
                     'create',
                     'products',
@@ -193,24 +201,30 @@ class Product implements ObserverInterface
                         'item' => static::buildProductForDataCue($product, true),
                     ]
                 );
-
-                if ($product->getTypeId() === 'configurable') {
-                    $variants = static::getVariants($product);
-                    foreach ($variants as $variant) {
-                        Queue::addJob(
-                            'create',
-                            'variants',
-                            $variant->getId(),
-                            [
-                                'productId' => $product->getId(),
-                                'variantId' => $variant->getId(),
-                                'item' => static::buildVariantForDataCue($product, $variant, true),
-                            ]
-                        );
-                    }
+            } elseif ($product->getTypeId() === 'configurable') {
+                $variants = static::getVariants($product);
+                foreach ($variants as $variant) {
+                    Queue::addJob(
+                        'create',
+                        'variants',
+                        $variant->getId(),
+                        [
+                            'productId' => $product->getId(),
+                            'variantId' => $variant->getId(),
+                            'item' => static::buildVariantForDataCue($product, $variant, true),
+                        ]
+                    );
                 }
             }
         }
+    }
+
+    private function beforeModelProductSaved(\Magento\Framework\Event\Observer $observer)
+    {
+        /**
+         * @var $product \Magento\Catalog\Model\Product
+         */
+        $this->productBeforeSave = $observer->getData('data_object');
     }
 
     private function onModelProductSaved(\Magento\Framework\Event\Observer $observer)
@@ -224,30 +238,71 @@ class Product implements ObserverInterface
 
         if (is_null($parentProduct)) { // product with 'no-variants'
             if (!$product->isObjectNew()) {
-                Queue::addJob(
-                    'update',
-                    'products',
-                    $product->getId(),
-                    [
-                        'productId' => $product->getId(),
-                        'variantId' => 'no-variants',
-                        'item' => static::buildProductForDataCue($product, false),
-                    ]
-                );
+                if ($product->getTypeId() === 'simple') {
+                    Queue::addJob(
+                        'update',
+                        'products',
+                        $product->getId(),
+                        [
+                            'productId' => $product->getId(),
+                            'variantId' => 'no-variants',
+                            'item' => static::buildProductForDataCue($product, false),
+                        ]
+                    );
+
+                    if ($this->productBeforeSave->getTypeId() === 'configurable') {
+                        $variants = static::getVariants($product);
+                        foreach ($variants as $variant) {
+                            Queue::addJob(
+                                'delete',
+                                'variants',
+                                $product->getId(),
+                                [
+                                    'productId' => $product->getId(),
+                                    'variantId' => $variant->getId(),
+                                ]
+                            );
+                        }
+                    }
+                } elseif ($product->getTypeId() === 'configurable') {
+                    if ($this->productBeforeSave->getTypeId() !== 'configurable') {
+                        Queue::addJob(
+                            'delete',
+                            'products',
+                            $product->getId(),
+                            [
+                                'productId' => $product->getId(),
+                                'variantId' => 'no-variants',
+                            ]
+                        );
+                    }
+
+                    $variants = static::getVariants($product);
+                    foreach ($variants as $variant) {
+                        Queue::addJob(
+                            'update',
+                            'variants',
+                            $variant->getId(),
+                            [
+                                'productId' => $product->getId(),
+                                'variantId' => $variant->getId(),
+                                'item' => static::buildVariantForDataCue($product, $variant, false),
+                            ]
+                        );
+                    }
+                }
             }
         } else {
-            if (!$product->isObjectNew()) {
-                Queue::addJob(
-                    'update',
-                    'variants',
-                    $product->getId(),
-                    [
-                        'productId' => $parentProduct->getId(),
-                        'variantId' => $product->getId(),
-                        'item' => static::buildVariantForDataCue($parentProduct, $product, false),
-                    ]
-                );
-            }
+            Queue::addJob(
+                'update',
+                'variants',
+                $product->getId(),
+                [
+                    'productId' => $parentProduct->getId(),
+                    'variantId' => $product->getId(),
+                    'item' => static::buildVariantForDataCue($parentProduct, $product, false),
+                ]
+            );
         }
     }
 
@@ -257,7 +312,6 @@ class Product implements ObserverInterface
          * @var $product \Magento\Catalog\Model\Product
          */
         $product = $observer->getData('data_object');
-
         $parentProductId = static::getParentProductId($product->getId());
 
         if (is_null($parentProductId)) {
@@ -281,5 +335,63 @@ class Product implements ObserverInterface
                 ]
             );
         }
+    }
+
+    private function onCartSaved(\Magento\Framework\Event\Observer $observer)
+    {
+        /**
+         * @var \Magento\Checkout\Model\Cart $cart
+         */
+        $cart = $observer->getData('cart');
+        $res = [];
+
+        /** @var \Magento\Quote\Model\Quote\Item[] $cartItems */
+        $cartItems = $cart->getQuote()->getAllItems();
+
+        foreach($cartItems as $cartItem) {
+            if ($cartItem->getProductType() === 'configurable') {
+                continue;
+            }
+
+            $parentCartItem = $cartItem->getParentItem();
+            $productId = $cartItem->getProduct()->getId();
+            $parentProductId = \DataCue\MagentoModule\Modules\Product::getParentProductId($productId);
+
+            $item = [
+                'product_id' => is_null($parentProductId) ? $productId : $parentProductId,
+                'variant_id' => is_null($parentProductId) ? 'no-variants' : $productId,
+                'quantity' => is_null($parentCartItem) ? $cartItem->getQty() : $parentCartItem->getQty(),
+                'currency' => \DataCue\MagentoModule\Modules\Order::getCurrency(),
+                'unit_price' => is_null($parentCartItem) ? (int)$cartItem->getPrice() : (int)$parentCartItem->getPrice(),
+            ];
+
+            $res[] = $item;
+        }
+
+        $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
+        $customerSession = $objectManager->get('Magento\Customer\Model\Session');
+        $userId = $customerSession->getCustomer()->getId();
+
+        /**
+         * @var \Magento\Store\Model\StoreManagerInterface $storeManager
+         */
+        $storeManager = $objectManager->get('\Magento\Store\Model\StoreManagerInterface');
+        $baseURL = $storeManager->getStore()->getBaseUrl();
+
+        Queue::addJobWithoutModelId(
+            'track',
+            'events',
+            [
+                'user' => [
+                    'user_id' => empty($userId) ? null : "$userId",
+                ],
+                'event' => [
+                    'type' => 'cart',
+                    'subtype' => 'update',
+                    'cart' => $res,
+                    'cart_link' => "{$baseURL}checkout/cart/",
+                ]
+            ]
+        );
     }
 }
