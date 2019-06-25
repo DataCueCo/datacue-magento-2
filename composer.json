@@ -14,7 +14,7 @@
             "email": "ruiminch@163.com"
         }
     ],
-    "minimum-stability": "stable",
+    "minimum-stability": "dev",
     "repositories": [
         { "type": "vcs", "url": "https://github.com/DataCueCo/datacue-php" }
     ],
