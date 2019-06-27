@@ -147,9 +147,27 @@ class Product implements ObserverInterface
     }
 
     /**
-     * @var $product \Magento\Catalog\Model\Product
+     * Get variant ids by product id
+     *
+     * @param int $productId
+     * @return int[]
+     */
+    public static function getVariantIds($productId)
+    {
+        $objectManager = ObjectManager::getInstance();
+        $variantIds = $objectManager->create('Magento\ConfigurableProduct\Model\ResourceModel\Product\Type\Configurable')->getChildrenIds($productId);
+        return array_keys($variantIds[0]);
+    }
+
+    /**
+     * @var \Magento\Catalog\Model\Product $productBeforeSave
      */
     private $productBeforeSave;
+
+    /**
+     * @var int[] $variantIdsBeforeSave
+     */
+    private $variantIdsBeforeSave;
 
     public function __construct()
     {
@@ -171,9 +189,6 @@ class Product implements ObserverInterface
             case 'catalog_product_delete_before':
                 $this->onModelProductDeleted($observer);
                 break;
-            case 'catalog_product_import_bunch_delete_commit_before':
-                $this->onModelProductVariantsDeleted($observer);
-                break;
             case 'checkout_cart_save_after':
                 $this->onCartSaved($observer);
             default:
@@ -185,7 +200,7 @@ class Product implements ObserverInterface
     private function onActionProductSaved(\Magento\Framework\Event\Observer $observer)
     {
         /**
-         * @var $product \Magento\Catalog\Model\Product
+         * @var \Magento\Catalog\Model\Product $product
          */
         $product = $observer->getData('product');
 
@@ -224,7 +239,10 @@ class Product implements ObserverInterface
         /**
          * @var $product \Magento\Catalog\Model\Product
          */
+        Log::info('beforeModelProductSaved');
         $this->productBeforeSave = $observer->getData('data_object');
+        $this->variantIdsBeforeSave = static::getVariantIds($this->productBeforeSave->getId());
+        Log::info($this->variantIdsBeforeSave);
     }
 
     private function onModelProductSaved(\Magento\Framework\Event\Observer $observer)
@@ -234,75 +252,84 @@ class Product implements ObserverInterface
          */
         $product = $observer->getData('data_object');
 
-        $parentProduct = static::getParentProduct($product->getId());
-
-        if (is_null($parentProduct)) { // product with 'no-variants'
-            if (!$product->isObjectNew()) {
-                if ($product->getTypeId() === 'simple') {
+        Log::info('onModelProductSaved');
+            
+        if (!$product->isObjectNew()) {
+            if ($product->getTypeId() === 'simple') {
+                Queue::addJob(
+                    'update',
+                    'products',
+                    $product->getId(),
+                    [
+                        'productId' => $product->getId(),
+                        'variantId' => 'no-variants',
+                        'item' => static::buildProductForDataCue($product, false),
+                    ]
+                );
+            } elseif ($product->getTypeId() === 'configurable') {
+                if ($this->productBeforeSave->getTypeId() !== 'configurable') {
                     Queue::addJob(
-                        'update',
+                        'delete',
                         'products',
                         $product->getId(),
                         [
                             'productId' => $product->getId(),
                             'variantId' => 'no-variants',
-                            'item' => static::buildProductForDataCue($product, false),
                         ]
                     );
-
-                    if ($this->productBeforeSave->getTypeId() === 'configurable') {
-                        $variants = static::getVariants($product);
-                        foreach ($variants as $variant) {
-                            Queue::addJob(
-                                'delete',
-                                'variants',
-                                $product->getId(),
-                                [
-                                    'productId' => $product->getId(),
-                                    'variantId' => $variant->getId(),
-                                ]
-                            );
-                        }
-                    }
-                } elseif ($product->getTypeId() === 'configurable') {
-                    if ($this->productBeforeSave->getTypeId() !== 'configurable') {
-                        Queue::addJob(
-                            'delete',
-                            'products',
-                            $product->getId(),
-                            [
-                                'productId' => $product->getId(),
-                                'variantId' => 'no-variants',
-                            ]
-                        );
-                    }
-
-                    $variants = static::getVariants($product);
-                    foreach ($variants as $variant) {
-                        Queue::addJob(
-                            'update',
-                            'variants',
-                            $variant->getId(),
-                            [
-                                'productId' => $product->getId(),
-                                'variantId' => $variant->getId(),
-                                'item' => static::buildVariantForDataCue($product, $variant, false),
-                            ]
-                        );
-                    }
                 }
             }
-        } else {
-            Queue::addJob(
-                'update',
-                'variants',
-                $product->getId(),
-                [
-                    'productId' => $parentProduct->getId(),
-                    'variantId' => $product->getId(),
-                    'item' => static::buildVariantForDataCue($parentProduct, $product, false),
-                ]
-            );
+
+            // handle variants
+            $variantIdsAfterSaved = static::getVariantIds($product->getId());
+            Log::info($variantIdsAfterSaved);
+            $variantIdsNeedsToAdd = array_diff($variantIdsAfterSaved, $this->variantIdsBeforeSave);
+            foreach ($variantIdsNeedsToAdd as $variantId) {
+                Queue::addJob(
+                    'delete',
+                    'products',
+                    $variantId,
+                    [
+                        'productId' => $variantId,
+                        'variantId' => 'no-variants',
+                    ]
+                );
+                $variant = static::getProductById($variantId);
+                Queue::addJob(
+                    'update',
+                    'variants',
+                    $variant->getId(),
+                    [
+                        'productId' => $product->getId(),
+                        'variantId' => $variant->getId(),
+                        'item' => static::buildVariantForDataCue($product, $variant, false),
+                    ]
+                );
+            }
+
+            $variantIdsNeedsToDelete = array_diff($this->variantIdsBeforeSave, $variantIdsAfterSaved);
+            foreach ($variantIdsNeedsToDelete as $variantId) {
+                Queue::addJob(
+                    'delete',
+                    'variants',
+                    $variantId,
+                    [
+                        'productId' => $product->getId(),
+                        'variantId' => $variantId,
+                    ]
+                );
+                $variant = static::getProductById($variantId);
+                Queue::addJob(
+                    'update',
+                    'products',
+                    $variant->getId(),
+                    [
+                        'productId' => $variant->getId(),
+                        'variantId' => 'no-variants',
+                        'item' => static::buildVariantForDataCue($product, $variant, false),
+                    ]
+                );
+            }
         }
     }
 
