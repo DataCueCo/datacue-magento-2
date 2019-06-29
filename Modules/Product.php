@@ -24,11 +24,11 @@ class Product implements ObserverInterface
             'link' => $product->getStore()->getBaseUrl(\Magento\Framework\UrlInterface::URL_TYPE_LINK) . $product->getUrlKey() . '.html',
             'available' => (int)$product->getStatus() === 1,
             'description' => $product->getDescription(),
-            'photo_url' => $product->getStore()->getBaseUrl(\Magento\Framework\UrlInterface::URL_TYPE_MEDIA) . 'catalog/product' . $product->getImage(),
+            'photo_url' => empty($product->getImage()) ? null : $product->getStore()->getBaseUrl(\Magento\Framework\UrlInterface::URL_TYPE_MEDIA) . 'catalog/product' . $product->getImage(),
             'stock' => $product->getExtensionAttributes()->getStockItem() ? $product->getExtensionAttributes()->getStockItem()->getQty() : 0,
             'categories' => array_map(function ($categoryId) use ($objManager) {
                 /**
-                 * @var $category \Magento\Catalog\Model\Category
+                 * @var \Magento\Catalog\Model\Category $category
                  */
                 $category = $objManager->create('Magento\Catalog\Model\Category')->load($categoryId);
                 return $category->getName();
@@ -66,11 +66,11 @@ class Product implements ObserverInterface
             'link' => $variant->getStore()->getBaseUrl(\Magento\Framework\UrlInterface::URL_TYPE_LINK) . $variant->getUrlKey() . '.html',
             'available' => (int)$product->getStatus() === 1,
             'description' => $product->getDescription(),
-            'photo_url' => $product->getStore()->getBaseUrl(\Magento\Framework\UrlInterface::URL_TYPE_MEDIA) . 'catalog/product' . $product->getImage(),
+            'photo_url' => empty($product->getImage()) ? null : $product->getStore()->getBaseUrl(\Magento\Framework\UrlInterface::URL_TYPE_MEDIA) . 'catalog/product' . $product->getImage(),
             'stock' => $variant->getExtensionAttributes()->getStockItem() ? $variant->getExtensionAttributes()->getStockItem()->getQty() : 0,
             'categories' => array_map(function ($categoryId) use ($objManager) {
                 /**
-                 * @var $category \Magento\Catalog\Model\Category
+                 * @var \Magento\Catalog\Model\Category $category
                  */
                 $category = $objManager->create('Magento\Catalog\Model\Category')->load($categoryId);
                 return $category->getName();
@@ -177,9 +177,6 @@ class Product implements ObserverInterface
     public function execute(\Magento\Framework\Event\Observer $observer)
     {
         switch ($observer->getEvent()->getName()) {
-            case 'controller_action_catalog_product_save_entity_after':
-                $this->onActionProductSaved($observer);
-                break;
             case 'catalog_product_save_before':
                 $this->beforeModelProductSaved($observer);
                 break;
@@ -197,14 +194,28 @@ class Product implements ObserverInterface
 
     }
 
-    private function onActionProductSaved(\Magento\Framework\Event\Observer $observer)
+    private function beforeModelProductSaved(\Magento\Framework\Event\Observer $observer)
     {
         /**
          * @var \Magento\Catalog\Model\Product $product
          */
-        $product = $observer->getData('product');
+        Log::info('beforeModelProductSaved');
+        $this->productBeforeSave = $observer->getData('data_object');
+        $this->variantIdsBeforeSave = static::getVariantIds($this->productBeforeSave->getId());
+        Log::info($this->variantIdsBeforeSave);
+    }
 
+    private function onModelProductSaved(\Magento\Framework\Event\Observer $observer)
+    {
+        /**
+         * @var \Magento\Catalog\Model\Product $product
+         */
+        $product = $observer->getData('data_object');
+
+        Log::info('onModelProductSaved');
+            
         if ($product->isObjectNew()) {
+            $product = static::getProductById($product->getId());
             if ($product->getTypeId() === 'simple') {
                 Queue::addJob(
                     'create',
@@ -217,8 +228,9 @@ class Product implements ObserverInterface
                     ]
                 );
             } elseif ($product->getTypeId() === 'configurable') {
-                $variants = static::getVariants($product);
-                foreach ($variants as $variant) {
+                $variantIds = static::getVariantIds($product->getId());
+                foreach ($variantIds as $variantId) {
+                    $variant = static::getProductById($variantId);
                     Queue::addJob(
                         'create',
                         'variants',
@@ -231,30 +243,7 @@ class Product implements ObserverInterface
                     );
                 }
             }
-        }
-    }
-
-    private function beforeModelProductSaved(\Magento\Framework\Event\Observer $observer)
-    {
-        /**
-         * @var $product \Magento\Catalog\Model\Product
-         */
-        Log::info('beforeModelProductSaved');
-        $this->productBeforeSave = $observer->getData('data_object');
-        $this->variantIdsBeforeSave = static::getVariantIds($this->productBeforeSave->getId());
-        Log::info($this->variantIdsBeforeSave);
-    }
-
-    private function onModelProductSaved(\Magento\Framework\Event\Observer $observer)
-    {
-        /**
-         * @var $product \Magento\Catalog\Model\Product
-         */
-        $product = $observer->getData('data_object');
-
-        Log::info('onModelProductSaved');
-            
-        if (!$product->isObjectNew()) {
+        } else {
             if ($product->getTypeId() === 'simple') {
                 Queue::addJob(
                     'update',
@@ -278,57 +267,85 @@ class Product implements ObserverInterface
                         ]
                     );
                 }
-            }
 
-            // handle variants
-            $variantIdsAfterSaved = static::getVariantIds($product->getId());
-            Log::info($variantIdsAfterSaved);
-            $variantIdsNeedsToAdd = array_diff($variantIdsAfterSaved, $this->variantIdsBeforeSave);
-            foreach ($variantIdsNeedsToAdd as $variantId) {
-                Queue::addJob(
-                    'delete',
-                    'products',
-                    $variantId,
-                    [
-                        'productId' => $variantId,
-                        'variantId' => 'no-variants',
-                    ]
-                );
-                $variant = static::getProductById($variantId);
-                Queue::addJob(
-                    'update',
-                    'variants',
-                    $variant->getId(),
-                    [
-                        'productId' => $product->getId(),
-                        'variantId' => $variant->getId(),
-                        'item' => static::buildVariantForDataCue($product, $variant, false),
-                    ]
-                );
-            }
+                // handle variants
+                $variantIdsAfterSaved = static::getVariantIds($product->getId());
+                Log::info($variantIdsAfterSaved);
 
-            $variantIdsNeedsToDelete = array_diff($this->variantIdsBeforeSave, $variantIdsAfterSaved);
-            foreach ($variantIdsNeedsToDelete as $variantId) {
-                Queue::addJob(
-                    'delete',
-                    'variants',
-                    $variantId,
-                    [
-                        'productId' => $product->getId(),
-                        'variantId' => $variantId,
-                    ]
-                );
-                $variant = static::getProductById($variantId);
-                Queue::addJob(
-                    'update',
-                    'products',
-                    $variant->getId(),
-                    [
-                        'productId' => $variant->getId(),
-                        'variantId' => 'no-variants',
-                        'item' => static::buildVariantForDataCue($product, $variant, false),
-                    ]
-                );
+                $variantIdsNeedsToDelete = array_diff($this->variantIdsBeforeSave, $variantIdsAfterSaved);
+                foreach ($variantIdsNeedsToDelete as $variantId) {
+                    Queue::addJob(
+                        'delete',
+                        'variants',
+                        $variantId,
+                        [
+                            'productId' => $product->getId(),
+                            'variantId' => $variantId,
+                        ]
+                    );
+                    $variant = static::getProductById($variantId);
+                    Queue::addJob(
+                        'update',
+                        'products',
+                        $variant->getId(),
+                        [
+                            'productId' => $variant->getId(),
+                            'variantId' => 'no-variants',
+                            'item' => static::buildVariantForDataCue($product, $variant, false),
+                        ]
+                    );
+                }
+
+                $variantIdsNeedsToAdd = array_diff($variantIdsAfterSaved, $this->variantIdsBeforeSave);
+                foreach ($variantIdsAfterSaved as $variantId) {
+                    if (in_array($variantId, $variantIdsNeedsToAdd)) {
+                        Queue::addJob(
+                            'delete',
+                            'products',
+                            $variantId,
+                            [
+                                'productId' => $variantId,
+                                'variantId' => 'no-variants',
+                            ]
+                        );
+                    }
+                    $variant = static::getProductById($variantId);
+                    Queue::addJob(
+                        'update',
+                        'variants',
+                        $variant->getId(),
+                        [
+                            'productId' => $product->getId(),
+                            'variantId' => $variant->getId(),
+                            'item' => static::buildVariantForDataCue($product, $variant, false),
+                        ]
+                    );
+                }
+            } elseif ($product->getTypeId() === 'virtual') {
+                $parentProduct = static::getParentProduct($product->getId());
+                if (is_null($parentProduct)) {
+                    Queue::addJob(
+                        'update',
+                        'products',
+                        $product->getId(),
+                        [
+                            'productId' => $product->getId(),
+                            'variantId' => 'no-variants',
+                            'item' => static::buildProductForDataCue($product, false),
+                        ]
+                    );
+                } else {
+                    Queue::addJob(
+                        'update',
+                        'variants',
+                        $product->getId(),
+                        [
+                            'productId' => $parentProduct->getId(),
+                            'variantId' => $product->getId(),
+                            'item' => static::buildVariantForDataCue($parentProduct, $product, false),
+                        ]
+                    );
+                }
             }
         }
     }
@@ -342,15 +359,42 @@ class Product implements ObserverInterface
         $parentProductId = static::getParentProductId($product->getId());
 
         if (is_null($parentProductId)) {
-            Queue::addJob(
-                'delete',
-                'products',
-                $product->getId(),
-                [
-                    'productId' => $product->getId(),
-                    'variantId' => 'no-variants',
-                ]
-            );
+            $variantIds = static::getVariantIds($product->getId());
+
+            if (count($variantIds) === 0) {
+                Queue::addJob(
+                    'delete',
+                    'products',
+                    $product->getId(),
+                    [
+                        'productId' => $product->getId(),
+                        'variantId' => 'no-variants',
+                    ]
+                );
+            } else {
+                foreach ($variantIds as $variantId) {
+                    Queue::addJob(
+                        'delete',
+                        'variants',
+                        $variantId,
+                        [
+                            'productId' => $product->getId(),
+                            'variantId' => $variantId,
+                        ]
+                    );
+                    $variant = static::getProductById($variantId);
+                    Queue::addJob(
+                        'update',
+                        'products',
+                        $variant->getId(),
+                        [
+                            'productId' => $variant->getId(),
+                            'variantId' => 'no-variants',
+                            'item' => static::buildVariantForDataCue($product, $variant, false),
+                        ]
+                    );
+                }
+            }
         } else {
             Queue::addJob(
                 'delete',

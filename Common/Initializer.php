@@ -40,9 +40,11 @@ class Initializer
 
     public function init()
     {
-        $this->initProducts();
-        $this->initUsers();
-        $this->initOrders();
+        if (!Queue::isActionExisting('init')) {
+            $this->initProducts();
+            $this->initUsers();
+            $this->initOrders();
+        }
     }
 
     private function initProducts()

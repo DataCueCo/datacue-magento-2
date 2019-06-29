@@ -139,7 +139,10 @@ class Schedule
                 $product = Product::getProductById($id);
                 $parentProduct = Product::getParentProduct($id);
                 if (is_null($parentProduct)) {
-                    $data[] = Product::buildProductForDataCue($product, true);
+                    $variantIds = Product::getVariantIds($product->getId());
+                    if (count($variantIds) === 0) {
+                        $data[] = Product::buildProductForDataCue($product, true);
+                    }
                 } else {
                     $data[] = Product::buildVariantForDataCue($parentProduct, $product, true);
                 }

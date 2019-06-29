@@ -14,18 +14,26 @@ class Save extends \Magento\Backend\App\Action
     protected $configWriter;
 
     /**
+     * @var \Magento\Framework\Message\ManagerInterface $messageManager
+     */
+    protected $messageManager;
+
+    /**
      * Constructor
      *
      * @param \Magento\Backend\App\Action\Context $context
      * @param \Magento\Framework\App\Config\Storage\WriterInterface $configWriter
+     * @param \Magento\Framework\Message\ManagerInterface $messageManager
      */
     public function __construct(
         \Magento\Backend\App\Action\Context $context,
-        \Magento\Framework\App\Config\Storage\WriterInterface $configWriter
+        \Magento\Framework\App\Config\Storage\WriterInterface $configWriter,
+        \Magento\Framework\Message\ManagerInterface $messageManager
     ) {
         parent::__construct($context);
 
         $this->configWriter = $configWriter;
+        $this->messageManager = $messageManager;
     }
 
     /**
@@ -45,20 +53,18 @@ class Save extends \Magento\Backend\App\Action
             ['max_try_times' => 3],
             file_exists(__DIR__ . '/../../../staging') ? 'development' : 'production'
         );
-
-        $redirectParams = [];
         $initializer = new Initializer($this->_objectManager->get('Magento\Framework\App\ResourceConnection'), $datacueClient);
         try {
             $initializer->init();
-            $redirectParams['status'] = 'success';
+            $this->messageManager->addSuccess('Success!');
         } catch (\DataCue\Exceptions\UnauthorizedException $e) {
-            $redirectParams['status'] = 'authorized_error';
+            $this->messageManager->addError('Incorrect API key or API secret, please make sure to copy/paste them <strong>exactly</strong> as you see from your dashboard.');
         } catch (\DataCue\Exceptions\Exception $e) {
-            $redirectParams['status'] = 'sync_fail';
+            $this->messageManager->addError('The synchronization task failed, Please contact the administrator.');
         }
 
         $resultRedirect = $this->resultRedirectFactory->create();
-        $resultRedirect->setPath('datacue_magento/setting/index', $redirectParams);
+        $resultRedirect->setPath('datacue_magento/setting/index');
         return $resultRedirect;
     }
 }

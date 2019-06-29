@@ -4,7 +4,6 @@
  */
 $apiKey = $block->getApiKey();
 $apiSecret = $block->getApiSecret();
-$error = $this->getRequest()->getParam('status');
 ?>
 <div id="datacue-tabs">
   <ul>
@@ -13,15 +12,6 @@ $error = $this->getRequest()->getParam('status');
     <li><a href="#tabs-3">Logs</a></li>
   </ul>
   <div id="tabs-1">
-  <?php if ($error === 'success') { ?>
-      <p style="color: green">Success!</p>
-    <?php } ?>
-    <?php if ($error === 'authorized_error') { ?>
-      <p style="color: red">Incorrect API key or API secret, please make sure to copy/paste them <strong>exactly</strong> as you see from your dashboard.</p>
-    <?php } ?>
-    <?php if ($error === 'sync_fail') { ?>
-      <p style="color: red">The synchronization task failed, Please contact the administrator.</p>
-    <?php } ?>
     <form style="font-size: 20px;" method="post" action="<?php echo $this->getUrl('datacue_magento/setting/save'); ?>">
       <div style="margin: 10px 0;">
         <label for="api_key" style="display: inline-block; width: 100px; text-align: right;">API key</label>
@@ -54,7 +44,21 @@ $error = $this->getRequest()->getParam('status');
     </table>
   </div>
   <div id="tabs-3">
-    <p></p>
+    <?php
+      // Dates
+      $dates = '<select id="datacue-logs-date-select">';
+      $timestamp = time();
+      for ($i = 0; $i < 3; $i++) {
+          $date = date('Y-m-d', $timestamp);
+          if (file_exists(__DIR__ . "/../../../datacue-$date.log")) {
+              $dates .= "<option value=\"$date\"" . ($i === 0 ? ' selected' : '') . ">$date</option>";
+          }
+          $timestamp -= 24 * 3600;
+      }
+      $dates .= '</select>';
+      echo $dates;
+    ?>
+    <iframe id="datacue-log-frame" src="" style="width: 100%; height: 500px; border: 0.5px solid #eee; margin-top: 5px;"></iframe>
   </div>
 </div>
 <script>
@@ -82,14 +86,25 @@ $error = $this->getRequest()->getParam('status');
       $("#datacue-sync-status-table tbody").html(html);
     });
   };
+  function getLogOfDate($, date) {
+    $("#datacue-log-frame").attr('src', '<?php echo $this->getUrl('datacue_magento/log/view'); ?>?date=' + date);
+  }
   require([
     'jquery',
     'jquery/ui'
   ], function($) {
     $("#datacue-tabs").tabs();
     getSyncStatus($);
-    setTimeout(function () {
+    setInterval(function () {
       getSyncStatus($);
     }, 30000);
+
+    var currentDate = jQuery("#datacue-logs-date-select").val();
+    if (currentDate && currentDate != '') {
+      getLogOfDate($, currentDate);
+    }
+    $("#datacue-logs-date-select").change(function() {
+      getLogOfDate($, $("#datacue-logs-date-select").val());
+    });
   });
 </script>
