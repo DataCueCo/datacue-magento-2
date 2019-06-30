@@ -28,9 +28,9 @@ class Order implements ObserverInterface
         $orderDetailList = $order->getAllVisibleItems();
         $item['cart'] = [];
         foreach ($orderDetailList as $orderItem) {
-            // if ($orderItem->getProductType() === 'configurable') {
-            //     continue;
-            // }
+            if ($orderItem->getProductType() === 'configurable') {
+                continue;
+            }
 
             $parentOrderItem = $orderItem->getParentItem();
             if (is_null($parentOrderItem)) {

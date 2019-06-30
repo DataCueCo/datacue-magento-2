@@ -2,6 +2,8 @@
 
 namespace DataCue\MagentoModule\Block;
 
+use DataCue\MagentoModule\Utils\Log;
+
 abstract class BaseTemplate extends \Magento\Framework\View\Element\Template
 {
     /**
@@ -19,13 +21,13 @@ abstract class BaseTemplate extends \Magento\Framework\View\Element\Template
      *
      * @param \Magento\Backend\Block\Template\Context $context
      * @param \Magento\Config\Model\ResourceModel\Config\Data\CollectionFactory $collectionFactory
+     * @param array $data
      */
     public function __construct(
         \Magento\Backend\Block\Template\Context $context,
         \Magento\Config\Model\ResourceModel\Config\Data\CollectionFactory $collectionFactory,
         array $data = []
-    )
-    {
+    ) {
         parent::__construct($context, $data);
         $this->collectionFactory = $collectionFactory;
     }
@@ -36,7 +38,6 @@ abstract class BaseTemplate extends \Magento\Framework\View\Element\Template
     public function getCustomerId()
     {
         $id = $this->customerSession->getCustomer()->getId();
-
         if (empty($id)) {
             return null;
         }

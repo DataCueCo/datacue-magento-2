@@ -17,9 +17,9 @@ class Product extends BaseTemplate
         array $data = []
     )
     {
+        parent::__construct($context, $collectionFactory, $data);
         $this->_registry = $registry;
         $this->customerSession = $customerSession;
-        parent::__construct($context, $collectionFactory, $data);
     }
 
     /**
@@ -40,14 +40,41 @@ class Product extends BaseTemplate
     {
         $product = $this->getProduct();
         $parentProduct = ProductModule::getParentProduct($product->getId());
-        return [
-            'api_key' => $this->getApiKey(),
-            'user_id' => $this->getCustomerId(),
-            'options' => ['_staging' => $this->getStaging()],
-            'page_type' => 'product',
-            'product_id' => is_null($parentProduct) ? $product->getId() : $parentProduct->getId(),
-            'variant_id' => is_null($parentProduct) ? 'no-variants' : $product->getId(),
-            'product_update' => is_null($parentProduct) ? ProductModule::buildProductForDataCue($product) : ProductModule::buildVariantForDataCue($parentProduct, $product),
-        ];
+
+        if (!is_null($parentProduct)) {
+            return [
+                'api_key' => $this->getApiKey(),
+                'user_id' => $this->getCustomerId(),
+                'options' => ['_staging' => $this->getStaging()],
+                'page_type' => 'product',
+                'product_id' => $parentProduct->getId(),
+                'variant_id' => $product->getId(),
+                'product_update' => ProductModule::buildVariantForDataCue($parentProduct, $product),
+            ];
+        } else {
+            $variantIds = ProductModule::getVariantIds($product->getId());
+            if (count($variantIds) > 0) {
+                $variant = ProductModule::getProductById($variantIds[0]);
+                return [
+                    'api_key' => $this->getApiKey(),
+                    'user_id' => $this->getCustomerId(),
+                    'options' => ['_staging' => $this->getStaging()],
+                    'page_type' => 'product',
+                    'product_id' => $product->getId(),
+                    'variant_id' => $variant->getId(),
+                    'product_update' => ProductModule::buildVariantForDataCue($product, $variant),
+                ];
+            } else {
+                return [
+                    'api_key' => $this->getApiKey(),
+                    'user_id' => $this->getCustomerId(),
+                    'options' => ['_staging' => $this->getStaging()],
+                    'page_type' => 'product',
+                    'product_id' => $product->getId(),
+                    'variant_id' => 'no-variants',
+                    'product_update' => ProductModule::buildProductForDataCue($product),
+                ];
+            }
+        }
     }
 }

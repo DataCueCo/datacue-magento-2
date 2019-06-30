@@ -21,10 +21,10 @@ class Checkout extends BaseTemplate
         array $data = []
     )
     {
+        parent::__construct($context, $collectionFactory, $data);
         $this->_registry = $registry;
         $this->customerSession = $customerSession;
         $this->cart = $cart;
-        parent::__construct($context, $collectionFactory, $data);
     }
 
     public function getCartItems()
