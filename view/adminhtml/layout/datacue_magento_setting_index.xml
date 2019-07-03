@@ -3,6 +3,7 @@
         <head>
             <title>DataCue Settings</title>
             <css src="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css"  src_type="url" rel="stylesheet" type="text/css" />
+            <css src="DataCue_MagentoModule::css/common.css" rel="stylesheet" type="text/css" />
         </head>
         <body>
             <referenceContainer name="content">

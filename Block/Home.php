@@ -28,6 +28,11 @@ class Home extends BaseTemplate
      */
     public function getDataCueConfig()
     {
+        $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
+        $this->collectionFactory = $objectManager->create('Magento\Config\Model\ResourceModel\Config\Data\CollectionFactory');
+        $collection = $this->collectionFactory->create();
+        $items = $collection->addFieldToFilter('path', 'datacue/api_key')->getColumnValues('value');
+
         return [
             'api_key' => $this->getApiKey(),
             'user_id' => $this->getCustomerId(),
