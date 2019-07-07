@@ -1,6 +1,7 @@
 {
     "name": "datacue/magento_module",
     "description": "Magento Module for DataCue Client",
+    "version": "1.0.0",
     "license": "GPL-2.0",
     "type": "project",
     "authors": [
@@ -15,12 +16,9 @@
         }
     ],
     "minimum-stability": "dev",
-    "repositories": [
-        { "type": "vcs", "url": "https://github.com/DataCueCo/datacue-php" }
-    ],
     "require": {
         "php": ">=5.5",
-        "datacue/client": "dev-1.0.4-dev"
+        "datacue/client": "dev-master"
     },
     "autoload": {
         "psr-4": {
