@@ -20,7 +20,7 @@ Here’s a brief overview of this multi-step process. The installation process *
 - Run `bin/magento setup:di:compile`.
 - You can run `bin/magento module:status DataCue_MagentoModule` to make sure the module is enabled.
 - You might need to change file permissions or ownership of the generated files after the installation.
-- After running the commands above you can login to the store admin. You will find a link called **DataCue Settings** under the **Marketing section**. Click on it.
+- After running the commands above, login to your Magento 2 store's admin. You will find a link called **DataCue Settings** under the **Marketing section**. Click on it.
 - Connect the module with your DataCue API Key and Secret (you can find it on your dashboard) and press save.
 - Depending on the size of your store the sync process can take a few mins to a few hours.
 
