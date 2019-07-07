@@ -4,11 +4,12 @@ Learn how to connect DataCue for Magento 2.
 
 ## Before You Start
 
-- For the most up-to-date install instructions, read our [DataCue guide for Magento 2](https://help.datacue.co/magento/installation.html). 
+- For the most up-to-date install instructions, read our [DataCue guide for Magento 2](https://help.datacue.co/magento/installation.html).
+- This module is does NOT support Magento 1.
 
 ## Installation and Setup
 
-**Here’s a brief overview of this multi-step process. (The installation process must be completed at the command line)**
+Here’s a brief overview of this multi-step process. The installation process **must be completed at the command line.**
 
 - Go to the root directory of Magento 2.
 - Run `composer require datacue/magento_module`.
@@ -19,7 +20,7 @@ Learn how to connect DataCue for Magento 2.
 - Run `bin/magento setup:di:compile`.
 - You can run `bin/magento module:status DataCue_MagentoModule` to make sure the module is enabled.
 - You might need to change file permissions or ownership of the generated files after the installation.
-- After running the commands above you can login to the store admin. You will find **DataCue Settings** -link under **Marketing section**. Then enter it.
+- After running the commands above you can login to the store admin. You will find a link called **DataCue Settings** under the **Marketing section**. Click on it.
 - Connect the module with your DataCue API Key and Secret (you can find it on your dashboard) and press save.
 - Depending on the size of your store the sync process can take a few mins to a few hours.
 
