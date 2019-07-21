@@ -74,7 +74,7 @@ $apiSecret = $block->getApiSecret();
 <script>
   function getSyncStatus ($) {
     $.ajax({
-      showLoader: true,
+      showLoader: false,
       url: '<?php echo $this->getUrl('datacue_magento/sync/status'); ?>',
       type: "POST",
       data: {

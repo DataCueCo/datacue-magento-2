@@ -83,6 +83,9 @@ class Schedule
                     case 'users':
                         $this->doUsersJob($job['action'], $job['job']);
                         break;
+                    case 'guest_users':
+                        $this->doUsersJob($job['action'], $job['job']);
+                        break;
                     case 'orders':
                         $this->doOrdersJob($job['action'], $job['job']);
                         break;
@@ -160,12 +163,29 @@ class Schedule
             Log::info('batch create users response: ' . $res);
         } elseif ($model === 'orders') {
             // batch create orders
-            $data = [];
+            $guestData = [];
+            $orderData = [];
             foreach ($job->ids as $id) {
                 $order = Order::getOrderById($id);
-                $data[] = Order::buildOrderForDataCue($order, true);
+                if (is_null($order->getCustomerId())) {
+                    $existing = false;
+                    foreach ($guestData as $guest) {
+                        if ($guest['user_id'] === $order->getCustomerEmail()) {
+                            $existing = true;
+                            break;
+                        }
+                    }
+                    if (!$existing) {
+                        $guestData[] = Order::buildGuestUserForDataCue($order);
+                    }
+                }
+                $orderData[] = Order::buildOrderForDataCue($order, true);
             }
-            $res = $this->client->orders->batchCreate($data);
+            if (count($guestData) > 0) {
+                $res = $this->client->users->batchCreate($guestData);
+                Log::info('batch create guest users response: ' . $res);
+            }
+            $res = $this->client->orders->batchCreate($orderData);
             Log::info('batch create orders response: ' . $res);
         }
     }

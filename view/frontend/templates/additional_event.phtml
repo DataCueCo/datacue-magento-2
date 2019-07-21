@@ -5,6 +5,6 @@
 $config = $block->getAdditionalEventConfig();
 ?>
 <script>
-window.datacue.identify(<?php echo $block->getCustomerId() ?>);
+window.datacue.identify("<?php echo $block->getCustomerId() ?>");
 window.datacue.track(<?php echo json_encode($config) ?>);
 </script>

@@ -16,9 +16,10 @@ class Order implements ObserverInterface
     public static function buildOrderForDataCue($order, $withId = false)
     {
         $currency = static::getCurrency();
+        $customerId = $order->getCustomerId();
 
         $item = [
-            'user_id' => $order->getCustomerId(),
+            'user_id' => is_null($customerId) ? $order->getCustomerEmail() : $customerId,
             'timestamp' => str_replace('+00:00', 'Z', gmdate('c', strtotime($order->getCreatedAt()))),
         ];
 
@@ -59,6 +60,23 @@ class Order implements ObserverInterface
         }
 
         return $item;
+    }
+
+    /**
+     * @param \Magento\Sales\Model\Order $order
+     * @return array
+     */
+    public static function buildGuestUserForDataCue($order)
+    {
+        return [
+            'user_id' => $order->getCustomerEmail(),
+            'email' => $order->getCustomerEmail(),
+            'title' => null,
+            'first_name' => $order->getShippingAddress()->getFirstname(),
+            'last_name' => $order->getShippingAddress()->getLastname(),
+            'email_subscriber' => false,
+            'guest_account' => true,
+        ];
     }
 
     /**
@@ -106,7 +124,7 @@ class Order implements ObserverInterface
     private function setIsNewTag(\Magento\Framework\Event\Observer $observer)
     {
         /**
-         * @var $order \Magento\Sales\Model\Order
+         * @var \Magento\Sales\Model\Order $order
          */
         $order = $observer->getData('data_object');
 
@@ -116,11 +134,21 @@ class Order implements ObserverInterface
     private function onOrderSaved(\Magento\Framework\Event\Observer $observer)
     {
         /**
-         * @var $order \Magento\Sales\Model\Order
+         * @var \Magento\Sales\Model\Order $order
          */
         $order = $observer->getData('data_object');
 
         if ($this->isNew) {
+            if (is_null($order->getCustomerId())) {
+                Queue::addJob(
+                    'create',
+                    'guest_users',
+                    $order->getId(),
+                    [
+                        'item' => static::buildGuestUserForDataCue($order),
+                    ]
+                );
+            }
             Queue::addJob(
                 'create',
                 'orders',
