@@ -12,8 +12,13 @@
 			</parameter>
 		</parameters>
 	</widget>
-  <widget class="DataCue\MagentoModule\Widget\ProductCarousel" id="datacue_magento_product_carousel">
-		<label>DataCue Product Carousel</label>
+  <widget class="DataCue\MagentoModule\Widget\Products" id="datacue_magento_products">
+		<label>DataCue Products</label>
 		<description>Display a product carousel of DataCue</description>
+		<parameters>
+			<parameter name="p_type" sort_order="10" visible="true" xsi:type="select" source_model="DataCue\MagentoModule\Widget\Products">
+				<label>Type</label>
+			</parameter>
+		</parameters>
 	</widget>
 </widgets>

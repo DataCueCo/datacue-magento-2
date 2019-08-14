@@ -7,5 +7,5 @@ use Magento\Widget\Block\BlockInterface;
  
 class Banner extends Template implements BlockInterface
 {
-	protected $_template = "DataCue_MagentoModule::widget/banner.phtml";
+		protected $_template = "DataCue_MagentoModule::widget/banner.phtml";
 }

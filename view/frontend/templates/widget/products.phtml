@@ -1,0 +1,17 @@
+<?php
+/**
+ * @var \DataCue\MagentoModule\Widget\Products $block
+ */
+
+$type = $block->getData('p_type');
+
+if ($type === 'all' || empty($type)) {
+?>
+<div data-dc-products></div>
+<?php  
+} else {
+?>
+<div data-dc-products="<?php echo $type; ?>"></div>
+<?php  
+}
+?>
