@@ -41,3 +41,23 @@ To deactivate DataCue for Magento 2, follow these steps.
 5. You might need to change file permissions or ownership of the generated files after the uninstallation.
 
 6. The module has been deleted now. You can run `bin/magento module:status DataCue_MagentoModule` to make sure the module is deleted.
+
+## How to add Banners and Products
+
+1. Access the admin panel.
+
+2. Click "CONTENT" in left side bar.
+
+3. Choose "Pages" or "Blocks", then we can access a list page.
+
+4. Select the page or block where you want to insert the banners or products, click on "Edit".
+
+5. In content editor, you can find an icon named "Insert Widget", then click the icon.
+
+6. In widget Type selector, choose "DataCue Banner" or "DataCue Product Carousel". If you choose "DataCue Banner", you should fill in "Banner Image" and "Banner Link" in addition.
+
+7. Click "Insert Widget" and then save the current page or block.
+
+8. Go to the relative page in frontend, you can see the widget you add.
+
+
