@@ -60,4 +60,12 @@ To deactivate DataCue for Magento 2, follow these steps.
 
 8. Go to the relative page in frontend, you can see the widget you add.
 
+## Update the Module
 
+1. Go to the root directory of Magento 2.
+
+2. Run `composer update datacue/magento_module`.
+
+3. You might need to change file permissions or ownership of the generated files after the update.
+
+4. The module has been updated now.
