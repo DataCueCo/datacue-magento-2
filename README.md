@@ -54,7 +54,7 @@ To deactivate DataCue for Magento 2, follow these steps.
 
 5. In content editor, you can find an icon named "Insert Widget", then click the icon.
 
-6. In widget Type selector, choose "DataCue Banner" or "DataCue Product Carousel". If you choose "DataCue Banner", you should fill in "Banner Image" and "Banner Link" in addition.
+6. In widget Type selector, choose "DataCue Banner" or "DataCue Products". If you choose "DataCue Banner", you should fill in "Banner Image" and "Banner Link" in addition. If you choose "DataCue Products", you should fill in "Type" in addition.
 
 7. Click "Insert Widget" and then save the current page or block.
 
