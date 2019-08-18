@@ -48,7 +48,7 @@ class Checkout extends BaseTemplate
                 'variant_id' => is_null($parentProductId) ? 'no-variants' : $productId,
                 'quantity' => is_null($parentCartItem) ? $cartItem->getQty() : $parentCartItem->getQty(),
                 'currency' => \DataCue\MagentoModule\Modules\Order::getCurrency(),
-                'unit_price' => is_null($parentCartItem) ? (int)$cartItem->getPrice() : (int)$parentCartItem->getPrice(),
+                'unit_price' => static::getProductPrice(static::getProductById($productId)),
             ];
 
             $res[] = $item;

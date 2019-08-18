@@ -40,6 +40,8 @@ class Initializer
 
     public function init()
     {
+        $this->datacueClient->overview->all();
+
         if (!Queue::isActionExisting('init')) {
             $this->initProducts();
             $this->initUsers();

@@ -56,7 +56,6 @@ class Schedule
 
     private function runCronJob()
     {
-        Log::info('runCronJob');
         // create datacue client
         $this->client = new Client(
             $this->getApiKey(),
@@ -67,6 +66,10 @@ class Schedule
 
         // get job
         $job = Queue::getNextAliveJob();
+        if (empty($job)) {
+            return;
+        }
+        Log::info('runCronJob');
         Queue::startJob($job['id']);
 
         try {
@@ -208,7 +211,7 @@ class Schedule
         switch ($action) {
             case 'create':
                 $res = $this->client->products->create($job->item);
-                Log::info('create variant response: ' . $res);
+                Log::info('create product response: ' . $res);
                 break;
             case 'update':
                 $res = $this->client->products->update($job->productId, $job->variantId, $job->item);
@@ -216,7 +219,7 @@ class Schedule
                 break;
             case 'delete':
                 $res = $this->client->products->delete($job->productId, $job->variantId);
-                Log::info('delete variant response: ' . $res);
+                Log::info('delete product response: ' . $res);
                 break;
             default:
                 break;

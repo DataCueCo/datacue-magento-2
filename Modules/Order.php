@@ -24,7 +24,7 @@ class Order implements ObserverInterface
         ];
 
         /**
-         * @var $orderDetailList \Magento\Sales\Api\Data\OrderItemInterface[]
+         * @var \Magento\Sales\Api\Data\OrderItemInterface[] $orderDetailList
          */
         $orderDetailList = $order->getAllVisibleItems();
         $item['cart'] = [];
@@ -33,26 +33,15 @@ class Order implements ObserverInterface
                 continue;
             }
 
-            $parentOrderItem = $orderItem->getParentItem();
-            if (is_null($parentOrderItem)) {
-                $productId = $orderItem->getProductId();
-                $parentProductId = Product::getParentProductId($productId);
-                $item['cart'][] = [
-                    'product_id' => is_null($parentProductId) ? $productId : $parentProductId,
-                    'variant_id' => is_null($parentProductId) ? 'no-variants' : $productId,
-                    'quantity' => (int)$orderItem->getQtyOrdered(),
-                    'unit_price' => (int)$orderItem->getPrice(),
-                    'currency' => $currency,
-                ];
-            } else {
-                $item['cart'][] = [
-                    'product_id' => $parentOrderItem->getProductId(),
-                    'variant_id' => $orderItem->getProductId(),
-                    'quantity' => (int)$orderItem->getQtyOrdered(),
-                    'unit_price' => (int)$parentOrderItem->getPrice(),
-                    'currency' => $currency,
-                ];
-            }
+            $productId = $orderItem->getProductId();
+            $parentProductId = Product::getParentProductId($productId);
+            $item['cart'][] = [
+                'product_id' => empty($parentProductId) ? $productId : $parentProductId,
+                'variant_id' => empty($parentProductId) ? 'no-variants' : $productId,
+                'quantity' => (int)$orderItem->getQtyOrdered(),
+                'unit_price' => Product::getProductPrice(Product::getProductById($productId)),
+                'currency' => $currency,
+            ];
         }
 
         if ($withId) {

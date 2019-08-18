@@ -19,8 +19,8 @@ class Product implements ObserverInterface
         $objManager = ObjectManager::getInstance();
         $item = [
             'name' => $product->getName(),
-            'price' => (float)$product->getSpecialPrice() === (float)0 ? (float)$product->getPrice() : (float)$product->getSpecialPrice(),
-            'full_price' => (float)$product->getPrice(),
+            'price' => static::getProductPrice($product),
+            'full_price' => static::getProductFullPrice($product),
             'link' => $product->getStore()->getBaseUrl(\Magento\Framework\UrlInterface::URL_TYPE_LINK) . $product->getUrlKey() . '.html',
             'available' => (int)$product->getStatus() === 1,
             'description' => $product->getDescription(),
@@ -44,7 +44,7 @@ class Product implements ObserverInterface
 
         if ($withId) {
             $item['product_id'] = $product->getId();
-            $item['variant_id'] = 'no_variants';
+            $item['variant_id'] = 'no-variants';
         }
 
         return $item;
@@ -61,8 +61,8 @@ class Product implements ObserverInterface
         $objManager = ObjectManager::getInstance();
         $item = [
             'name' => $product->getName(),
-            'price' => (float)$variant->getSpecialPrice() === (float)0 ? (float)$variant->getPrice() : (float)$variant->getSpecialPrice(),
-            'full_price' => (float)$variant->getPrice(),
+            'price' => static::getProductPrice($variant),
+            'full_price' => static::getProductFullPrice($variant),
             'link' => $variant->getStore()->getBaseUrl(\Magento\Framework\UrlInterface::URL_TYPE_LINK) . $variant->getUrlKey() . '.html',
             'available' => (int)$product->getStatus() === 1,
             'description' => $product->getDescription(),
@@ -159,6 +159,18 @@ class Product implements ObserverInterface
         return array_keys($variantIds[0]);
     }
 
+    public static function getProductPrice(\Magento\Catalog\Model\Product $product)
+    {
+        $objectManager = ObjectManager::getInstance();
+        return $objectManager->create('Magento\Catalog\Helper\Data')->getTaxPrice($product, $product->getFinalPrice(), true);
+    }
+
+    public static function getProductFullPrice(\Magento\Catalog\Model\Product $product)
+    {
+        $objectManager = ObjectManager::getInstance();
+        return $objectManager->create('Magento\Catalog\Helper\Data')->getTaxPrice($product, $product->getPrice(), true);
+    }
+
     /**
      * @var \Magento\Catalog\Model\Product $productBeforeSave
      */
@@ -199,10 +211,12 @@ class Product implements ObserverInterface
         /**
          * @var \Magento\Catalog\Model\Product $product
          */
-        Log::info('beforeModelProductSaved');
-        $this->productBeforeSave = $observer->getData('data_object');
-        $this->variantIdsBeforeSave = static::getVariantIds($this->productBeforeSave->getId());
-        Log::info($this->variantIdsBeforeSave);
+        if ($observer->getData('data_object')->getTypeId() !== 'virtual') {
+            Log::info('beforeModelProductSaved');
+            $this->productBeforeSave = $observer->getData('data_object');
+            $this->variantIdsBeforeSave = static::getVariantIds($this->productBeforeSave->getId());
+            Log::info($this->variantIdsBeforeSave);
+        }
     }
 
     private function onModelProductSaved(\Magento\Framework\Event\Observer $observer)
@@ -245,6 +259,20 @@ class Product implements ObserverInterface
             }
         } else {
             if ($product->getTypeId() === 'simple') {
+                if (count($this->variantIdsBeforeSave) > 0) {
+                    foreach ($this->variantIdsBeforeSave as $variantId) {
+                        Queue::addJob(
+                            'delete',
+                            'variants',
+                            $variantId,
+                            [
+                                'productId' => $product->getId(),
+                                'variantId' => $variantId,
+                            ]
+                        );
+                    }
+                }
+
                 Queue::addJob(
                     'update',
                     'products',
@@ -256,7 +284,11 @@ class Product implements ObserverInterface
                     ]
                 );
             } elseif ($product->getTypeId() === 'configurable') {
-                if ($this->productBeforeSave->getTypeId() !== 'configurable') {
+                // handle variants
+                $variantIdsAfterSaved = static::getVariantIds($product->getId());
+                Log::info($variantIdsAfterSaved);
+
+                if (count($this->variantIdsBeforeSave) === 0 && count($variantIdsAfterSaved) > 0) {
                     Queue::addJob(
                         'delete',
                         'products',
@@ -267,10 +299,6 @@ class Product implements ObserverInterface
                         ]
                     );
                 }
-
-                // handle variants
-                $variantIdsAfterSaved = static::getVariantIds($product->getId());
-                Log::info($variantIdsAfterSaved);
 
                 $variantIdsNeedsToDelete = array_diff($this->variantIdsBeforeSave, $variantIdsAfterSaved);
                 foreach ($variantIdsNeedsToDelete as $variantId) {
@@ -283,32 +311,9 @@ class Product implements ObserverInterface
                             'variantId' => $variantId,
                         ]
                     );
-                    $variant = static::getProductById($variantId);
-                    Queue::addJob(
-                        'update',
-                        'products',
-                        $variant->getId(),
-                        [
-                            'productId' => $variant->getId(),
-                            'variantId' => 'no-variants',
-                            'item' => static::buildVariantForDataCue($product, $variant, false),
-                        ]
-                    );
                 }
 
-                $variantIdsNeedsToAdd = array_diff($variantIdsAfterSaved, $this->variantIdsBeforeSave);
                 foreach ($variantIdsAfterSaved as $variantId) {
-                    if (in_array($variantId, $variantIdsNeedsToAdd)) {
-                        Queue::addJob(
-                            'delete',
-                            'products',
-                            $variantId,
-                            [
-                                'productId' => $variantId,
-                                'variantId' => 'no-variants',
-                            ]
-                        );
-                    }
                     $variant = static::getProductById($variantId);
                     Queue::addJob(
                         'update',
@@ -433,7 +438,7 @@ class Product implements ObserverInterface
                 'variant_id' => is_null($parentProductId) ? 'no-variants' : $productId,
                 'quantity' => is_null($parentCartItem) ? $cartItem->getQty() : $parentCartItem->getQty(),
                 'currency' => \DataCue\MagentoModule\Modules\Order::getCurrency(),
-                'unit_price' => is_null($parentCartItem) ? (int)$cartItem->getPrice() : (int)$parentCartItem->getPrice(),
+                'unit_price' => static::getProductPrice(static::getProductById($productId)),
             ];
 
             $res[] = $item;
