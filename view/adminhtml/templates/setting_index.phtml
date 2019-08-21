@@ -15,14 +15,24 @@ $apiSecret = $block->getApiSecret();
     <form style="font-size: 20px;" method="post" action="<?php echo $this->getUrl('datacue_magento/setting/save'); ?>">
       <div style="margin: 10px 0;">
         <label for="api_key" style="display: inline-block; width: 100px; text-align: right;">API key</label>
-        <input id="api_key" name="api_key" style="width: 300px;" value="<?php echo $apiKey ?>" />
+        <input id="api_key" name="api_key" style="width: 300px;" value="<?php echo $apiKey ?>" <?php if (!empty($apiKey)) { echo 'disabled="disabled"'; } ?> />
       </div>
       <div style="margin: 10px 0;">
         <label for="api_secret" style="display: inline-block; width: 100px; text-align: right;">API secret</label>
-        <input id="api_secret" name="api_secret" type="password" style="width: 300px;" value="<?php echo $apiSecret ?>" />
+        <input id="api_secret" name="api_secret" type="password" style="width: 300px;" value="<?php echo empty($apiSecret) ? '' : '****************' ?>" <?php if (!empty($apiSecret)) { echo 'disabled="disabled"'; } ?> />
       </div>
+      <?php
+        if (!empty($apiKey) || !empty($apiSecret)) {
+      ?>
+      <a id="btn-disconnect" class="btn-disconnect" href="javascript:;">DISCONNECT FROM DATACUE</a>
+      <?php
+        } else {
+      ?>
       <input name="form_key" type="hidden" value="<?php /** @escapeNotVerified */ echo $this->getFormKey() ?>" />
       <button class="ui-button ui-widget ui-corner-all" style="font-size: .8em; margin-left: 105px;">Save</button>
+      <?php
+        }
+      ?>
     </form>
     <div class="datacue-helper-section">
       <h2>Here are some resources you might find helpful</h2>
@@ -37,6 +47,18 @@ $apiSecret = $block->getApiSecret();
     <div class="datacue-helper-section">
       <h2>Support Center</h2>
       <p>Questions? Need help? Email us at <a href="mailto:support@datacue.co" target="_blank">support@datacue.co</a> to speak to a real person</p>
+    </div>
+    <div id="dialog-disconnect" class="hide">
+      <div class="card">
+        <div class="title">Are you sure?</div>
+        <div class="description">
+          Disconnecting will delete all data from DataCue and disable recommendations!
+        </div>
+        <div class="footer">
+          <button id="disconnect-ok">Disconnect</button>
+          <button id="disconnect-cancel">Cancel</button>
+        </div>
+      </div>
     </div>
   </div>
   <div id="tabs-2">
@@ -72,7 +94,7 @@ $apiSecret = $block->getApiSecret();
   </div>
 </div>
 <script>
-  function getSyncStatus ($) {
+  function getSyncStatus($) {
     $.ajax({
       showLoader: false,
       url: '<?php echo $this->getUrl('datacue_magento/sync/status'); ?>',
@@ -82,7 +104,6 @@ $apiSecret = $block->getApiSecret();
       },
       dataType: 'json'
     }).done(function (data) {
-      console.log('ajax', data);
       var html = '';
       Object.keys(data).forEach(function (key) {
         html += '<tr>';
@@ -115,6 +136,29 @@ $apiSecret = $block->getApiSecret();
     }
     $("#datacue-logs-date-select").change(function() {
       getLogOfDate($, $("#datacue-logs-date-select").val());
+    });
+
+    $("#btn-disconnect").on("click", function() {
+      $("#dialog-disconnect").removeClass("hide");
+    });
+
+    $("#disconnect-ok").on("click", function() {
+      $.ajax({
+        showLoader: true,
+        url: '<?php echo $this->getUrl('datacue_magento/setting/disconnect'); ?>',
+        type: "POST",
+        data: {
+          form_key: FORM_KEY
+        },
+        dataType: 'json'
+      }).done(function () {
+        $("#dialog-disconnect").addClass("hide");
+        window.location.reload();
+      });
+    });
+
+    $("#disconnect-cancel").on("click", function() {
+      $("#dialog-disconnect").addClass("hide");
     });
   });
 </script>

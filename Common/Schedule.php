@@ -137,7 +137,6 @@ class Schedule
      */
     private function doInit($model, $job)
     {
-        global $wpdb;
         if ($model === 'products') {
             // batch create products
             $data = [];

@@ -43,9 +43,7 @@ class Save extends \Magento\Backend\App\Action
     public function execute()
     {
         $apiKey = $this->getRequest()->getPostValue("api_key");
-        $this->configWriter->save('datacue/api_key', $apiKey);
         $apiSecret = $this->getRequest()->getPostValue("api_secret");
-        $this->configWriter->save('datacue/api_secret', $apiSecret);
 
         $datacueClient = new Client(
             $apiKey,
@@ -56,6 +54,8 @@ class Save extends \Magento\Backend\App\Action
         $initializer = new Initializer($this->_objectManager->get('Magento\Framework\App\ResourceConnection'), $datacueClient);
         try {
             $initializer->init();
+            $this->configWriter->save('datacue/api_key', $apiKey);
+            $this->configWriter->save('datacue/api_secret', $apiSecret);
             $this->messageManager->addSuccess('Success!');
         } catch (\DataCue\Exceptions\UnauthorizedException $e) {
             $this->messageManager->addError('Incorrect API key or API secret, please make sure to copy/paste them <strong>exactly</strong> as you see from your dashboard.');

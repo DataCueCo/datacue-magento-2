@@ -160,4 +160,11 @@ class Queue
             UPDATE `" . static::$tableName . "` SET `status` = $status WHERE `id` = $id
         ")->rowCount() > 0;
     }
+
+    public static function deleteAllJobs()
+    {
+        static::init();
+
+        return static::$connection->query("DELETE FROM `" . static::$tableName . "`")->rowCount();
+    }
 }
