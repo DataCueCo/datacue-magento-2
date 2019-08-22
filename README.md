@@ -66,6 +66,8 @@ To deactivate DataCue for Magento 2, follow these steps.
 
 2. Run `composer update datacue/magento_module`.
 
-3. You might need to change file permissions or ownership of the generated files after the update.
+3. Run `bin/magento setup:upgrade`.
 
-4. The module has been updated now.
+4. You might need to change file permissions or ownership of the generated files after the update.
+
+5. The module has been updated now.
