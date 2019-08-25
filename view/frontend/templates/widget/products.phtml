@@ -3,6 +3,9 @@
  * @var \DataCue\MagentoModule\Widget\Products $block
  */
 
+ ?>
+<link rel="stylesheet" type="text/css" href="<?php echo $block->getCustomCssURL() ?>" />
+<?php
 $type = $block->getData('p_type');
 
 if ($type === 'all' || empty($type)) {

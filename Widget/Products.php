@@ -2,11 +2,10 @@
 
 namespace DataCue\MagentoModule\Widget;
 
-use Magento\Framework\View\Element\Template;
 use Magento\Widget\Block\BlockInterface;
 use Magento\Framework\Option\ArrayInterface;
  
-class Products extends Template implements BlockInterface, ArrayInterface
+class Products extends BaseWidget implements BlockInterface, ArrayInterface
 {
 	protected $_template = "DataCue_MagentoModule::widget/products.phtml";
 

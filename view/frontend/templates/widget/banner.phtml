@@ -4,6 +4,7 @@
  */
 ?>
 <?php if($block->getData('img') && $block->getData('link')): ?>
+  <link rel="stylesheet" type="text/css" href="<?php echo $block->getCustomCssURL() ?>" />
   <div
     data-dc-banners
     data-dc-static-img="<?php echo $block->getData('img'); ?>"

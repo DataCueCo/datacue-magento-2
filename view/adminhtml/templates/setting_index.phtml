@@ -4,14 +4,16 @@
  */
 $apiKey = $block->getApiKey();
 $apiSecret = $block->getApiSecret();
+$customCss = $block->getCustomCss();
 ?>
 <div id="datacue-tabs">
   <ul>
-    <li><a href="#tabs-1">Settings</a></li>
-    <li><a href="#tabs-2">Sync Status</a></li>
-    <li><a href="#tabs-3">Logs</a></li>
+    <li><a href="#tab-settings">Settings</a></li>
+    <li><a href="#tab-custom-css">Custom CSS</a></li>
+    <li><a href="#tab-sync-status">Sync Status</a></li>
+    <li><a href="#tab-logs">Logs</a></li>
   </ul>
-  <div id="tabs-1">
+  <div id="tab-settings">
     <form style="font-size: 20px;" method="post" action="<?php echo $this->getUrl('datacue_magento/setting/save'); ?>">
       <div style="margin: 10px 0;">
         <label for="api_key" style="display: inline-block; width: 100px; text-align: right;">API key</label>
@@ -61,7 +63,14 @@ $apiSecret = $block->getApiSecret();
       </div>
     </div>
   </div>
-  <div id="tabs-2">
+  <div id="tab-custom-css">
+    <form style="font-size: 20px;" method="post" action="<?php echo $this->getUrl('datacue_magento/customcss/save'); ?>">
+      <textarea name="css" rows="20" style="width: 100%;"><?php echo $customCss; ?></textarea>
+      <input name="form_key" type="hidden" value="<?php /** @escapeNotVerified */ echo $this->getFormKey() ?>" />
+      <button class="ui-button ui-widget ui-corner-all" type="submit" style="font-size: .8em;">Save</button>
+    </form>
+  </div>
+  <div id="tab-sync-status">
     <table id="datacue-sync-status-table">
       <thead>
       <tr>
@@ -75,7 +84,7 @@ $apiSecret = $block->getApiSecret();
       <tbody></tbody>
     </table>
   </div>
-  <div id="tabs-3">
+  <div id="tab-logs">
     <?php
       // Dates
       $dates = '<select id="datacue-logs-date-select">';
