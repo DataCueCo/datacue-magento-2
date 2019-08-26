@@ -3,12 +3,17 @@
 namespace DataCue\MagentoModule\Block;
 
 use DataCue\MagentoModule\Modules\Product as ProductModule;
+use Magento\Framework\App\ObjectManager;
 
 /**
  * Product
  */
 class Product extends BaseTemplate
 {
+    const CSS_DICTIONARY = 'datacue/css/';
+
+    const CSS_FILE_NAME = 'custom.css';
+    
     public function __construct(
         \Magento\Backend\Block\Template\Context $context,
         \Magento\Customer\Model\Session $customerSession,
@@ -76,5 +81,34 @@ class Product extends BaseTemplate
                 ];
             }
         }
+    }
+
+    /**
+     * @return array
+     */
+    public function getRecommendationSettings()
+    {
+        $collection = $this->collectionFactory->create();
+        $statusItem = $collection->addFieldToFilter('path', 'datacue/products_status_for_product_page')->getColumnValues('value');
+        $status = count($statusItem) > 0 ? $statusItem[0] : '0';
+        
+        $collection = $this->collectionFactory->create();
+        $typeItem = $collection->addFieldToFilter('path', 'datacue/products_type_for_product_page')->getColumnValues('value');
+        $type = count($typeItem) > 0 ? $typeItem[0] : 'all';
+
+        return [
+            'products_status_for_product_page' => $status,
+            'products_type_for_product_page' => $type,
+        ];
+    }
+
+    public function getCustomCssURL()
+    {
+        $objManager = ObjectManager::getInstance();
+        /**
+         * @var \Magento\Framework\Filesystem $filesystem
+         */
+        $filesystem = $objManager->create('Magento\Framework\Filesystem');
+        return '/pub/' . $filesystem->getUri(\Magento\Framework\App\Filesystem\DirectoryList::UPLOAD) . '/' . static::CSS_DICTIONARY . static::CSS_FILE_NAME;
     }
 }

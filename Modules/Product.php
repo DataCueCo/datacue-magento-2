@@ -63,7 +63,7 @@ class Product implements ObserverInterface
             'name' => $product->getName(),
             'price' => static::getProductPrice($variant),
             'full_price' => static::getProductFullPrice($variant),
-            'link' => $variant->getStore()->getBaseUrl(\Magento\Framework\UrlInterface::URL_TYPE_LINK) . $variant->getUrlKey() . '.html',
+            'link' => $variant->getStore()->getBaseUrl(\Magento\Framework\UrlInterface::URL_TYPE_LINK) . $product->getUrlKey() . '.html',
             'available' => (int)$product->getStatus() === 1,
             'description' => $product->getDescription(),
             'photo_url' => empty($product->getImage()) ? null : $product->getStore()->getBaseUrl(\Magento\Framework\UrlInterface::URL_TYPE_MEDIA) . 'catalog/product' . $product->getImage(),

@@ -66,7 +66,11 @@ class Setting extends BaseTemplate
         return count($items) > 0 ? $items[0] : '';
     }
 
-
+    /**
+     * Get custom CSS
+     *
+     * @return void
+     */
     public function getCustomCss()
     {
         $uploadDirectory = $this->filesystem->getDirectoryWrite(\Magento\Framework\App\Filesystem\DirectoryList::UPLOAD);
@@ -77,5 +81,26 @@ class Setting extends BaseTemplate
         }
 
         return file_get_contents($target);
+    }
+
+    /**
+     * get recommendation settings
+     *
+     * @return void
+     */
+    public function getRecommendationSettings()
+    {
+        $collection = $this->collectionFactory->create();
+        $statusItem = $collection->addFieldToFilter('path', 'datacue/products_status_for_product_page')->getColumnValues('value');
+        $status = count($statusItem) > 0 ? $statusItem[0] : '0';
+
+        $collection = $this->collectionFactory->create();
+        $typeItem = $collection->addFieldToFilter('path', 'datacue/products_type_for_product_page')->getColumnValues('value');
+        $type = count($typeItem) > 0 ? $typeItem[0] : 'all';
+
+        return [
+            'products_status_for_product_page' => $status,
+            'products_type_for_product_page' => $type,
+        ];
     }
 }

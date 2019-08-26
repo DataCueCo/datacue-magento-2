@@ -14,7 +14,7 @@ abstract class BaseTemplate extends \Magento\Framework\View\Element\Template
     /**
      * @var \Magento\Config\Model\ResourceModel\Config\Data\CollectionFactory $collectionFactory
      */
-    private $collectionFactory;
+    protected $collectionFactory;
 
     /**
      * Constructor

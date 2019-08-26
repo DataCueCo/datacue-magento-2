@@ -5,10 +5,12 @@
 $apiKey = $block->getApiKey();
 $apiSecret = $block->getApiSecret();
 $customCss = $block->getCustomCss();
+$recommendationSettings = $block->getRecommendationSettings();
 ?>
 <div id="datacue-tabs">
   <ul>
     <li><a href="#tab-settings">Settings</a></li>
+    <li><a href="#recommendations">Recommendations</a></li>
     <li><a href="#tab-custom-css">Custom CSS</a></li>
     <li><a href="#tab-sync-status">Sync Status</a></li>
     <li><a href="#tab-logs">Logs</a></li>
@@ -63,8 +65,30 @@ $customCss = $block->getCustomCss();
       </div>
     </div>
   </div>
+  <div id="recommendations">
+    <form style="font-size: 14px;" method="post" action="<?php echo $this->getUrl('datacue_magento/recommendation/save'); ?>">
+      <div style="margin: 10px 0;">
+        <label for="products_status_for_product_page" style="display: inline-block; width: 200px; text-align: right;">Add products to product page</label>
+        <select name="products_status_for_product_page">
+          <option value="0">Disabled</option>
+          <option value="1">Enabled</option>
+        </select>
+      </div>
+      <div style="margin: 10px 0;">
+        <label for="products_type_for_product_page" style="display: inline-block; width: 200px; text-align: right;">Recommendation type</label>
+        <select name="products_type_for_product_page">
+          <option value="all">All</option>
+          <option value="recent">Recently Viewed</option>
+          <option value="similar">Similar to current product</option>
+          <option value="related">Related Products</option>
+        </select>
+      </div>
+      <input name="form_key" type="hidden" value="<?php /** @escapeNotVerified */ echo $this->getFormKey() ?>" />
+      <button class="ui-button ui-widget ui-corner-all" style="font-size: .8em; margin-left: 205px;">Save</button>
+    </form>
+  </div>
   <div id="tab-custom-css">
-    <form style="font-size: 20px;" method="post" action="<?php echo $this->getUrl('datacue_magento/customcss/save'); ?>">
+    <form style="font-size: 14px;" method="post" action="<?php echo $this->getUrl('datacue_magento/customcss/save'); ?>">
       <textarea name="css" rows="20" style="width: 100%;"><?php echo $customCss; ?></textarea>
       <input name="form_key" type="hidden" value="<?php /** @escapeNotVerified */ echo $this->getFormKey() ?>" />
       <button class="ui-button ui-widget ui-corner-all" type="submit" style="font-size: .8em;">Save</button>
@@ -169,5 +193,8 @@ $customCss = $block->getCustomCss();
     $("#disconnect-cancel").on("click", function() {
       $("#dialog-disconnect").addClass("hide");
     });
+
+    $("[name='products_status_for_product_page']").val('<?php echo $recommendationSettings['products_status_for_product_page']; ?>');
+    $("[name='products_type_for_product_page']").val('<?php echo $recommendationSettings['products_type_for_product_page']; ?>');
   });
 </script>

@@ -1,0 +1,26 @@
+<?php
+/**
+ * @var \Datacue\MagentoModule\Block\Product $block
+ */
+
+$settings = $block->getRecommendationSettings();
+
+if ($settings['products_status_for_product_page'] === '0') {
+  return;
+}
+
+$type = $settings['products_type_for_product_page'];
+
+?>
+<link rel="stylesheet" type="text/css" href="<?php echo $block->getCustomCssURL() ?>" />
+<?php
+if ($type === 'all' || empty($type)) {
+?>
+<div data-dc-products></div>
+<?php  
+} else {
+?>
+<div data-dc-products="<?php echo $type; ?>"></div>
+<?php  
+}
+?>
