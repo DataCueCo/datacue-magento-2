@@ -79,6 +79,7 @@ class User implements ObserverInterface
          * @var $user \Magento\Customer\Model\Customer
          */
         $user = $observer->getData('data_object');
+        $websiteId = $user->getWebsiteId();
 
         if ($this->isNew) {
             Queue::addJob(
@@ -87,7 +88,8 @@ class User implements ObserverInterface
                 $user->getId(),
                 [
                     'item' => static::buildUserForDataCue($user, true),
-                ]
+                ],
+                $websiteId
             );
         } else {
             Queue::addJob(
@@ -97,7 +99,8 @@ class User implements ObserverInterface
                 [
                     'userId' => $user->getId(),
                     'item' => static::buildUserForDataCue($user, false),
-                ]
+                ],
+                $websiteId
             );
         }
     }
@@ -108,6 +111,7 @@ class User implements ObserverInterface
          * @var $user \Magento\Customer\Model\Customer
          */
         $user = $observer->getData('data_object');
+        $websiteId = $user->getWebsiteId();
 
         Queue::addJob(
             'delete',
@@ -115,7 +119,8 @@ class User implements ObserverInterface
             $user->getId(),
             [
                 'userId' => $user->getId(),
-            ]
+            ],
+            $websiteId
         );
     }
 }

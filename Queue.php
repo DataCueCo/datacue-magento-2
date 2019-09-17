@@ -35,31 +35,41 @@ class Queue
         static::$tableName = $resource->getTableName('datacue_queue');
     }
 
-    public static function addJob($action, $model, $modelId, $job)
+    public static function addJob($action, $model, $modelId, $job, $websiteId)
     {
+        if (!in_array($websiteId, Website::getActiveWebsiteIds())) {
+            return;
+        }
+
         static::init();
 
         $action = static::$connection->quote($action);
         $model = static::$connection->quote($model);
         $modelId = static::$connection->quote("$modelId");
         $job = static::$connection->quote(json_encode($job));
+        $websiteId = static::$connection->quote($websiteId);
 
         return static::$connection->query("
-			INSERT INTO `" . static::$tableName . "` (`action`, `model`, `model_id`, `job`, `status`, `created_at`) 
-			VALUES ($action, $model, $modelId, $job, 0, NOW())")->rowCount() > 0;
+			INSERT INTO `" . static::$tableName . "` (`website_id`, `action`, `model`, `model_id`, `job`, `status`, `created_at`) 
+			VALUES ($websiteId, $action, $model, $modelId, $job, 0, NOW())")->rowCount() > 0;
     }
 
-    public static function addJobWithoutModelId($action, $model, $job)
+    public static function addJobWithoutModelId($action, $model, $job, $websiteId)
     {
+        if (!in_array($websiteId, Website::getActiveWebsiteIds())) {
+            return;
+        }
+
         static::init();
 
         $action = static::$connection->quote($action);
         $model = static::$connection->quote($model);
         $job = static::$connection->quote(json_encode($job));
+        $websiteId = static::$connection->quote($websiteId);
 
         return static::$connection->query("
-			INSERT INTO `" . static::$tableName . "` (`action`, `model`, `job`, `status`, `created_at`) 
-			VALUES ($action, $model, $job, 0, NOW())")->rowCount() > 0;
+			INSERT INTO `" . static::$tableName . "` (`website_id`, `action`, `model`, `job`, `status`, `created_at`) 
+			VALUES ($websiteId, $action, $model, $job, 0, NOW())")->rowCount() > 0;
     }
 
     public static function updateJob($id, $job)
@@ -95,6 +105,17 @@ class Queue
 
         return static::$connection->fetchOne("
             SELECT 1 FROM `" . static::$tableName . "` WHERE `action` = $action") === '1';
+    }
+
+    public static function isActionExistingByWebsiteId($action, $websiteId)
+    {
+        static::init();
+
+        $action = static::$connection->quote($action);
+        $websiteId = static::$connection->quote($websiteId);
+
+        return static::$connection->fetchOne("
+            SELECT 1 FROM `" . static::$tableName . "` WHERE `action` = $action AND `website_id` = $websiteId") === '1';
     }
 
     public static function getAliveJob($action, $model, $modelId)
@@ -138,6 +159,20 @@ class Queue
         return $jobs;
     }
 
+    public static function getAllInitJobByWebsiteId($websiteId)
+    {
+        static::init();
+
+        $websiteId = static::$connection->quote($websiteId);
+
+        $jobs = static::$connection->fetchAll("
+            SELECT * FROM `" . static::$tableName . "` WHERE `action` = 'init' AND `website_id` = $websiteId");
+        foreach ($jobs as &$job) {
+            $job['job'] = json_decode($job['job']);
+        }
+        return $jobs;
+    }
+
     public static function startJob($id)
     {
         static::init();
@@ -166,5 +201,14 @@ class Queue
         static::init();
 
         return static::$connection->query("DELETE FROM `" . static::$tableName . "`")->rowCount();
+    }
+
+    public static function deleteAllJobsByWebsiteId($websiteId)
+    {
+        static::init();
+
+        $websiteId = static::$connection->quote($websiteId);
+
+        return static::$connection->query("DELETE FROM `" . static::$tableName . "` WHERE `website_id` = $websiteId")->rowCount();
     }
 }

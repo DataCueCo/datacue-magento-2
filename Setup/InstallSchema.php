@@ -31,6 +31,16 @@ class InstallSchema implements InstallSchemaInterface
                     'ID'
                 )
                 ->addColumn(
+                    'website_id',
+                    Table::TYPE_INTEGER,
+                    null,
+                    [
+                        'unsigned' => true,
+                        'nullable' => false
+                    ],
+                    'Website ID'
+                )
+                ->addColumn(
                     'action',
                     Table::TYPE_TEXT,
                     32,
@@ -80,6 +90,104 @@ class InstallSchema implements InstallSchemaInterface
                     'Created at'
                 )
                 ->setComment('DataCue Queue Table')
+                ->setOption('type', 'InnoDB')
+                ->setOption('charset', 'utf8mb4')
+                ->setOption('collate', 'utf8mb4_general_ci');
+            $installer->getConnection()->createTable($table);
+        }
+
+        $tableName = $installer->getTable('datacue_clients');
+        if (!$installer->getConnection()->isTableExists($tableName)) {
+            $table = $installer->getConnection()
+                ->newTable($tableName)
+                ->addColumn(
+                    'website_id',
+                    Table::TYPE_INTEGER,
+                    null,
+                    [
+                        'identity' => false,
+                        'unsigned' => true,
+                        'nullable' => false,
+                        'primary' => true
+                    ],
+                    'Website ID'
+                )
+                ->addColumn(
+                    'api_key',
+                    Table::TYPE_TEXT,
+                    64,
+                    ['nullable' => false],
+                    'API KEY'
+                )
+                ->addColumn(
+                    'api_secret',
+                    Table::TYPE_TEXT,
+                    64,
+                    ['nullable' => false],
+                    'API SECRET'
+                )
+                ->addColumn(
+                    'last_updated_at',
+                    Table::TYPE_DATETIME,
+                    null,
+                    ['nullable' => false],
+                    'Last updated at'
+                )
+                ->setComment('DataCue Clients Table')
+                ->setOption('type', 'InnoDB')
+                ->setOption('charset', 'utf8mb4')
+                ->setOption('collate', 'utf8mb4_general_ci');
+            $installer->getConnection()->createTable($table);
+        }
+
+        $tableName = $installer->getTable('datacue_client_options');
+        if (!$installer->getConnection()->isTableExists($tableName)) {
+            $table = $installer->getConnection()
+                ->newTable($tableName)
+                ->addColumn(
+                    'id',
+                    Table::TYPE_INTEGER,
+                    null,
+                    [
+                        'identity' => true,
+                        'unsigned' => true,
+                        'nullable' => false,
+                        'primary' => true
+                    ],
+                    'ID'
+                )
+                ->addColumn(
+                    'website_id',
+                    Table::TYPE_INTEGER,
+                    null,
+                    [
+                        'unsigned' => true,
+                        'nullable' => false
+                    ],
+                    'Website ID'
+                )
+                ->addColumn(
+                    'key',
+                    Table::TYPE_TEXT,
+                    255,
+                    ['nullable' => false],
+                    'API KEY'
+                )
+                ->addColumn(
+                    'value',
+                    Table::TYPE_TEXT,
+                    255,
+                    ['nullable' => false],
+                    'API SECRET'
+                )
+                ->addColumn(
+                    'last_updated_at',
+                    Table::TYPE_DATETIME,
+                    null,
+                    ['nullable' => false],
+                    'Last updated at'
+                )
+                ->setComment('DataCue Client Options Table')
                 ->setOption('type', 'InnoDB')
                 ->setOption('charset', 'utf8mb4')
                 ->setOption('collate', 'utf8mb4_general_ci');

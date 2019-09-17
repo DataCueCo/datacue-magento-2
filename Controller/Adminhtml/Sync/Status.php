@@ -36,6 +36,7 @@ class Status extends \Magento\Backend\App\Action
 
     public function execute()
     {
+        $websiteId = intval($this->getRequest()->getPostValue("website_id"), 10);
         $result = $this->resultJsonFactory->create();
 
         $schedule = new Schedule($this->collectionFactory, $this->configWriter);
@@ -58,7 +59,7 @@ class Status extends \Magento\Backend\App\Action
                 'failed' => 0,
             ],
         ];
-        $rows = Queue::getAllInitJob();
+        $rows = Queue::getAllInitJobByWebsiteId($websiteId);
         foreach($rows as $item) {
             $count = count($item['job']->ids);
             $res[$item['model']]['total'] += $count;
@@ -69,6 +70,9 @@ class Status extends \Magento\Backend\App\Action
             }
         }
 
-        return $result->setData($res);
+        return $result->setData([
+            'status' => 'ok',
+            'data' => $res,
+        ]);
     }
 }

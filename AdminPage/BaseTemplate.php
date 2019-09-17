@@ -28,12 +28,4 @@ abstract class BaseTemplate extends \Magento\Backend\Block\Template
     {
         return true;
     }
-
-    /**
-     * @return string
-     */
-    protected function getApiKey()
-    {
-        return 'abc';
-    }
 }

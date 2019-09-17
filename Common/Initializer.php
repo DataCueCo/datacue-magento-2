@@ -29,20 +29,30 @@ class Initializer
      */
     private $datacueClient;
 
+    /**
+     * @var int $websiteId
+     */
+    private $websiteId;
+
     public function __construct(
         \Magento\Framework\App\ResourceConnection $resource,
-        \DataCue\Client $datacueClient
+        \DataCue\Client $datacueClient,
+        $websiteId
     ) {
         $this->resource = $resource;
         $this->connection = $resource->getConnection();
         $this->datacueClient = $datacueClient;
+        $this->websiteId = $websiteId;
+    }
+
+    public function check()
+    {
+        $this->datacueClient->overview->all();
     }
 
     public function init()
     {
-        $this->datacueClient->overview->all();
-
-        if (!Queue::isActionExisting('init')) {
+        if (!Queue::isActionExistingByWebsiteId('init', $this->websiteId)) {
             $this->initProducts();
             $this->initUsers();
             $this->initOrders();
@@ -51,10 +61,10 @@ class Initializer
 
     private function initProducts()
     {
-        $table = $this->resource->getTableName('catalog_product_entity');
-        $products = $this->connection->fetchAll("SELECT `entity_id` FROM `" . $table . "`");
+        $table = $this->resource->getTableName('catalog_product_website');
+        $products = $this->connection->fetchAll("SELECT `product_id` FROM `" . $table . "` WHERE `website_id` = {$this->websiteId}");
         $productIds = array_map(function ($item) {
-            return $item['entity_id'];
+            return $item['product_id'];
         }, $products);
 
         $res = $this->datacueClient->overview->products();
@@ -64,14 +74,14 @@ class Initializer
 
         foreach($productIdsList as $item) {
             $job = ['ids' => $item];
-            Queue::addJobWithoutModelId('init', 'products', $job);
+            Queue::addJobWithoutModelId('init', 'products', $job, $this->websiteId);
         }
     }
 
     private function initUsers()
     {
         $table = $this->resource->getTableName('customer_entity');
-        $users = $this->connection->fetchAll("SELECT `entity_id` FROM `" . $table . "`");
+        $users = $this->connection->fetchAll("SELECT `entity_id` FROM `" . $table . "` WHERE `website_id` = {$this->websiteId}");
         $userIds = array_map(function ($item) {
             return $item['entity_id'];
         }, $users);
@@ -83,14 +93,20 @@ class Initializer
 
         foreach($userIdsList as $item) {
             $job = ['ids' => $item];
-            Queue::addJobWithoutModelId('init', 'users', $job);
+            Queue::addJobWithoutModelId('init', 'users', $job, $this->websiteId);
         }
     }
 
     private function initOrders()
     {
+        $table = $this->resource->getTableName('store');
+        $store = $this->connection->fetchRow("SELECT `store_id` FROM `" . $table . "` WHERE `website_id` = {$this->websiteId}");
+        if (!$store) {
+            return;
+        }
+
         $table = $this->resource->getTableName('sales_order');
-        $orders = $this->connection->fetchAll("SELECT `entity_id` FROM `" . $table . "` WHERE `state` != 'canceled'");
+        $orders = $this->connection->fetchAll("SELECT `entity_id` FROM `" . $table . "` WHERE `state` != 'canceled' AND `store_id` = {$store['store_id']}");
         $orderIds = array_map(function ($item) {
             return $item['entity_id'];
         }, $orders);
@@ -102,7 +118,7 @@ class Initializer
 
         foreach($orderIdsList as $item) {
             $job = ['ids' => $item];
-            Queue::addJobWithoutModelId('init', 'orders', $job);
+            Queue::addJobWithoutModelId('init', 'orders', $job, $this->websiteId);
         }
     }
 }

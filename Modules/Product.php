@@ -5,6 +5,7 @@ namespace DataCue\MagentoModule\Modules;
 use Magento\Framework\App\ObjectManager;
 use Magento\Framework\Event\ObserverInterface;
 use DataCue\MagentoModule\Queue;
+use DataCue\MagentoModule\Website;
 use DataCue\MagentoModule\Utils\Log;
 
 class Product implements ObserverInterface
@@ -181,6 +182,11 @@ class Product implements ObserverInterface
      */
     private $variantIdsBeforeSave;
 
+    /**
+     * @var int[] $websiteIdsBeforeSave
+     */
+    private $websiteIdsBeforeSave;
+
     public function __construct()
     {
 
@@ -213,9 +219,11 @@ class Product implements ObserverInterface
          */
         if ($observer->getData('data_object')->getTypeId() !== 'virtual') {
             Log::info('beforeModelProductSaved');
-            $this->productBeforeSave = $observer->getData('data_object');
+            $product = $observer->getData('data_object');
+            $this->productBeforeSave = static::getProductById($product->getId());
             $this->variantIdsBeforeSave = static::getVariantIds($this->productBeforeSave->getId());
-            Log::info($this->variantIdsBeforeSave);
+            $this->websiteIdsBeforeSave = $this->productBeforeSave->getWebsiteIds();
+            Log::info($this->websiteIdsBeforeSave);
         }
     }
 
@@ -230,105 +238,74 @@ class Product implements ObserverInterface
             
         if ($product->isObjectNew()) {
             $product = static::getProductById($product->getId());
+            $websiteIds = $product->getWebsiteIds();
             if ($product->getTypeId() === 'simple') {
-                Queue::addJob(
-                    'create',
-                    'products',
-                    $product->getId(),
-                    [
-                        'productId' => $product->getId(),
-                        'variantId' => 'no-variants',
-                        'item' => static::buildProductForDataCue($product, true),
-                    ]
-                );
-            } elseif ($product->getTypeId() === 'configurable') {
-                $variantIds = static::getVariantIds($product->getId());
-                foreach ($variantIds as $variantId) {
-                    $variant = static::getProductById($variantId);
+                foreach ($websiteIds as $websiteId) {
                     Queue::addJob(
                         'create',
-                        'variants',
-                        $variant->getId(),
-                        [
-                            'productId' => $product->getId(),
-                            'variantId' => $variant->getId(),
-                            'item' => static::buildVariantForDataCue($product, $variant, true),
-                        ]
-                    );
-                }
-            }
-        } else {
-            if ($product->getTypeId() === 'simple') {
-                if (count($this->variantIdsBeforeSave) > 0) {
-                    foreach ($this->variantIdsBeforeSave as $variantId) {
-                        Queue::addJob(
-                            'delete',
-                            'variants',
-                            $variantId,
-                            [
-                                'productId' => $product->getId(),
-                                'variantId' => $variantId,
-                            ]
-                        );
-                    }
-                }
-
-                Queue::addJob(
-                    'update',
-                    'products',
-                    $product->getId(),
-                    [
-                        'productId' => $product->getId(),
-                        'variantId' => 'no-variants',
-                        'item' => static::buildProductForDataCue($product, false),
-                    ]
-                );
-            } elseif ($product->getTypeId() === 'configurable') {
-                // handle variants
-                $variantIdsAfterSaved = static::getVariantIds($product->getId());
-                Log::info($variantIdsAfterSaved);
-
-                if (count($this->variantIdsBeforeSave) === 0 && count($variantIdsAfterSaved) > 0) {
-                    Queue::addJob(
-                        'delete',
                         'products',
                         $product->getId(),
                         [
                             'productId' => $product->getId(),
                             'variantId' => 'no-variants',
-                        ]
+                            'item' => static::buildProductForDataCue($product, true),
+                        ],
+                        $websiteId
                     );
                 }
+            } elseif ($product->getTypeId() === 'configurable') {
+                $variantIds = static::getVariantIds($product->getId());
+                foreach ($websiteIds as $websiteId) {
+                    foreach ($variantIds as $variantId) {
+                        $variant = static::getProductById($variantId);
+                        Queue::addJob(
+                            'create',
+                            'variants',
+                            $variant->getId(),
+                            [
+                                'productId' => $product->getId(),
+                                'variantId' => $variant->getId(),
+                                'item' => static::buildVariantForDataCue($product, $variant, true),
+                            ],
+                            $websiteId
+                        );
+                    }
+                }
+            }
+        } else {
+            if ($product->getTypeId() !== 'virtual') {
+                foreach ($this->websiteIdsBeforeSave as $websiteId) {
+                    if (count($this->variantIdsBeforeSave) > 0) {
+                        foreach ($this->variantIdsBeforeSave as $variantId) {
+                            Queue::addJob(
+                                'delete',
+                                'variants',
+                                $variantId,
+                                [
+                                    'productId' => $product->getId(),
+                                    'variantId' => $variantId,
+                                ],
+                                $websiteId
+                            );
+                        }
+                    } else {
+                        Queue::addJob(
+                            'delete',
+                            'products',
+                            $product->getId(),
+                            [
+                                'productId' => $product->getId(),
+                                'variantId' => 'no-variants',
+                            ],
+                            $websiteId
+                        );
+                    }
+                }
+            }
 
-                $variantIdsNeedsToDelete = array_diff($this->variantIdsBeforeSave, $variantIdsAfterSaved);
-                foreach ($variantIdsNeedsToDelete as $variantId) {
-                    Queue::addJob(
-                        'delete',
-                        'variants',
-                        $variantId,
-                        [
-                            'productId' => $product->getId(),
-                            'variantId' => $variantId,
-                        ]
-                    );
-                }
-
-                foreach ($variantIdsAfterSaved as $variantId) {
-                    $variant = static::getProductById($variantId);
-                    Queue::addJob(
-                        'update',
-                        'variants',
-                        $variant->getId(),
-                        [
-                            'productId' => $product->getId(),
-                            'variantId' => $variant->getId(),
-                            'item' => static::buildVariantForDataCue($product, $variant, false),
-                        ]
-                    );
-                }
-            } elseif ($product->getTypeId() === 'virtual') {
-                $parentProduct = static::getParentProduct($product->getId());
-                if (is_null($parentProduct)) {
+            $websiteIds = $product->getWebsiteIds();
+            if ($product->getTypeId() === 'simple') {
+                foreach ($websiteIds as $websiteId) {
                     Queue::addJob(
                         'update',
                         'products',
@@ -337,19 +314,58 @@ class Product implements ObserverInterface
                             'productId' => $product->getId(),
                             'variantId' => 'no-variants',
                             'item' => static::buildProductForDataCue($product, false),
-                        ]
+                        ],
+                        $websiteId
                     );
-                } else {
-                    Queue::addJob(
-                        'update',
-                        'variants',
-                        $product->getId(),
-                        [
-                            'productId' => $parentProduct->getId(),
-                            'variantId' => $product->getId(),
-                            'item' => static::buildVariantForDataCue($parentProduct, $product, false),
-                        ]
-                    );
+                }
+            } elseif ($product->getTypeId() === 'configurable') {
+                // handle variants
+                $variantIdsAfterSaved = static::getVariantIds($product->getId());
+
+                foreach ($websiteIds as $websiteId) {
+                    foreach ($variantIdsAfterSaved as $variantId) {
+                        $variant = static::getProductById($variantId);
+                        Queue::addJob(
+                            'update',
+                            'variants',
+                            $variant->getId(),
+                            [
+                                'productId' => $product->getId(),
+                                'variantId' => $variant->getId(),
+                                'item' => static::buildVariantForDataCue($product, $variant, false),
+                            ],
+                            $websiteId
+                        );
+                    }
+                }
+            } elseif ($product->getTypeId() === 'virtual') {
+                $parentProduct = static::getParentProduct($product->getId());
+                foreach ($websiteIds as $websiteId) {
+                    if (is_null($parentProduct)) {
+                        Queue::addJob(
+                            'update',
+                            'products',
+                            $product->getId(),
+                            [
+                                'productId' => $product->getId(),
+                                'variantId' => 'no-variants',
+                                'item' => static::buildProductForDataCue($product, false),
+                            ],
+                            $websiteId
+                        );
+                    } else {
+                        Queue::addJob(
+                            'update',
+                            'variants',
+                            $product->getId(),
+                            [
+                                'productId' => $parentProduct->getId(),
+                                'variantId' => $product->getId(),
+                                'item' => static::buildVariantForDataCue($parentProduct, $product, false),
+                            ],
+                            $websiteId
+                        );
+                    }
                 }
             }
         }
@@ -362,54 +378,62 @@ class Product implements ObserverInterface
          */
         $product = $observer->getData('data_object');
         $parentProductId = static::getParentProductId($product->getId());
+        $websiteIds = $product->getWebsiteIds();
 
-        if (is_null($parentProductId)) {
-            $variantIds = static::getVariantIds($product->getId());
-
-            if (count($variantIds) === 0) {
-                Queue::addJob(
-                    'delete',
-                    'products',
-                    $product->getId(),
-                    [
-                        'productId' => $product->getId(),
-                        'variantId' => 'no-variants',
-                    ]
-                );
-            } else {
-                foreach ($variantIds as $variantId) {
+        foreach ($websiteIds as $websiteId) {
+            if (is_null($parentProductId)) {
+                $variantIds = static::getVariantIds($product->getId());
+    
+                if (count($variantIds) === 0) {
                     Queue::addJob(
                         'delete',
-                        'variants',
-                        $variantId,
+                        'products',
+                        $product->getId(),
                         [
                             'productId' => $product->getId(),
-                            'variantId' => $variantId,
-                        ]
-                    );
-                    $variant = static::getProductById($variantId);
-                    Queue::addJob(
-                        'update',
-                        'products',
-                        $variant->getId(),
-                        [
-                            'productId' => $variant->getId(),
                             'variantId' => 'no-variants',
-                            'item' => static::buildVariantForDataCue($product, $variant, false),
-                        ]
+                        ],
+                        $websiteId
                     );
+                } else {
+                    
+                    foreach ($variantIds as $variantId) {
+                        Queue::addJob(
+                            'delete',
+                            'variants',
+                            $variantId,
+                            [
+                                'productId' => $product->getId(),
+                                'variantId' => $variantId,
+                            ],
+                            $websiteId
+                        );
+                        $variant = static::getProductById($variantId);
+                        Queue::addJob(
+                            'update',
+                            'products',
+                            $variant->getId(),
+                            [
+                                'productId' => $variant->getId(),
+                                'variantId' => 'no-variants',
+                                'item' => static::buildVariantForDataCue($product, $variant, false),
+                            ],
+                            $websiteId
+                        );
+                    }
                 }
+            } else {
+                Queue::addJob(
+                    'delete',
+                    'variants',
+                    $product->getId(),
+                    [
+                        'productId' => $parentProductId,
+                        'variantId' => $product->getId(),
+                    ],
+                    $websiteId
+                );
             }
-        } else {
-            Queue::addJob(
-                'delete',
-                'variants',
-                $product->getId(),
-                [
-                    'productId' => $parentProductId,
-                    'variantId' => $product->getId(),
-                ]
-            );
         }
     }
 
@@ -421,13 +445,16 @@ class Product implements ObserverInterface
         $cart = $observer->getData('cart');
         $res = [];
 
-        /** @var \Magento\Quote\Model\Quote\Item[] $cartItems */
+        /**
+         * @var \Magento\Quote\Model\Quote\Item[] $cartItems
+         */
         $cartItems = $cart->getQuote()->getAllItems();
 
         foreach($cartItems as $cartItem) {
             if ($cartItem->getProductType() === 'configurable') {
                 continue;
             }
+            $storeId = $cartItem->getStoreId();
 
             $parentCartItem = $cartItem->getParentItem();
             $productId = $cartItem->getProduct()->getId();
@@ -441,33 +468,41 @@ class Product implements ObserverInterface
                 'unit_price' => static::getProductPrice(static::getProductById($productId)),
             ];
 
-            $res[] = $item;
+            if (!array_key_exists($storeId, $res)) {
+                $res[$storeId] = [];
+            }
+            $res[$storeId][] = $item;
         }
 
         $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
         $customerSession = $objectManager->get('Magento\Customer\Model\Session');
         $userId = $customerSession->getCustomer()->getId();
 
-        /**
-         * @var \Magento\Store\Model\StoreManagerInterface $storeManager
-         */
-        $storeManager = $objectManager->get('\Magento\Store\Model\StoreManagerInterface');
-        $baseURL = $storeManager->getStore()->getBaseUrl();
+        foreach ($res as $storeId => $storeRes) {
+            /**
+             * @var \Magento\Store\Model\StoreManagerInterface $storeManager
+             */
+            $storeManager = $objectManager->get('\Magento\Store\Model\StoreManagerInterface');
+            $store = $storeManager->getStore($storeId);
+            $baseURL = $store->getBaseUrl();
+            $websiteId = $store->getWebsiteId();
 
-        Queue::addJobWithoutModelId(
-            'track',
-            'events',
-            [
-                'user' => [
-                    'user_id' => empty($userId) ? null : "$userId",
+            Queue::addJobWithoutModelId(
+                'track',
+                'events',
+                [
+                    'user' => [
+                        'user_id' => empty($userId) ? null : "$userId",
+                    ],
+                    'event' => [
+                        'type' => 'cart',
+                        'subtype' => 'update',
+                        'cart' => $storeRes,
+                        'cart_link' => "{$baseURL}checkout/cart/",
+                    ]
                 ],
-                'event' => [
-                    'type' => 'cart',
-                    'subtype' => 'update',
-                    'cart' => $res,
-                    'cart_link' => "{$baseURL}checkout/cart/",
-                ]
-            ]
-        );
+                $websiteId
+            );
+        }
     }
 }

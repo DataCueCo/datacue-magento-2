@@ -5,7 +5,7 @@ namespace DataCue\MagentoModule\Controller\Adminhtml\CustomCss;
 use DataCue\Client;
 use DataCue\MagentoModule\Common\Initializer;
 
-class Save extends \Magento\Backend\App\Action
+class Index extends \Magento\Backend\App\Action
 {
 
     const CSS_DICTIONARY = 'datacue/css/';
@@ -45,18 +45,15 @@ class Save extends \Magento\Backend\App\Action
      */
     public function execute()
     {
-        $css = $this->getRequest()->getPostValue("css");
         $websiteId = $this->getRequest()->getPostValue("website_id");
         $uploadDirectory = $this->filesystem->getDirectoryWrite(\Magento\Framework\App\Filesystem\DirectoryList::UPLOAD);
-        $dictionary = $uploadDirectory->getAbsolutePath(static::CSS_DICTIONARY);
         $target = $uploadDirectory->getAbsolutePath(static::CSS_DICTIONARY . "{$websiteId}_" . static::CSS_FILE_NAME);
 
-        if (!file_exists($dictionary)) {
-            mkdir($dictionary, 0777, true);
-        }
-
-        file_put_contents($target, $css);
-
-        return $this->resultJsonFactory->create()->setData(['status' => 'ok']);
+        return $this->resultJsonFactory->create()->setData([
+            'status' => 'ok',
+            'data' => [
+                'content' => file_exists($target) ? file_get_contents($target) : '',
+            ],
+        ]);
     }
 }

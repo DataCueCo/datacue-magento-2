@@ -86,6 +86,16 @@ class Order implements ObserverInterface
         return $store->getWebsite()->getBaseCurrency()->getCode();
     }
 
+    /**
+     * @param \Magento\Sales\Model\Order $order
+     */
+    public static function getWebsiteId($order)
+    {
+        $store = $order->getStore();
+
+        return $store->getWebsiteId();
+    }
+
     private $isNew = false;
 
     public function __construct()
@@ -126,6 +136,7 @@ class Order implements ObserverInterface
          * @var \Magento\Sales\Model\Order $order
          */
         $order = $observer->getData('data_object');
+        $websiteId = static::getWebsiteId($order);
 
         if ($this->isNew) {
             if (is_null($order->getCustomerId())) {
@@ -135,7 +146,8 @@ class Order implements ObserverInterface
                     $order->getId(),
                     [
                         'item' => static::buildGuestUserForDataCue($order),
-                    ]
+                    ],
+                    $websiteId
                 );
             }
             Queue::addJob(
@@ -144,7 +156,8 @@ class Order implements ObserverInterface
                 $order->getId(),
                 [
                     'item' => static::buildOrderForDataCue($order, true),
-                ]
+                ],
+                $websiteId
             );
         } elseif ($order->getStatus() === 'canceled' && !Queue::isJobExisting('cancel', 'orders', $order->getId())) {
             Queue::addJob(
@@ -153,7 +166,8 @@ class Order implements ObserverInterface
                 $order->getId(),
                 [
                     'orderId' => $order->getId(),
-                ]
+                ],
+                $websiteId
             );
         } elseif ($order->getStatus() !== 'canceled' && Queue::isJobExisting('cancel', 'orders', $order->getId())) {
             Queue::addJob(
@@ -162,7 +176,8 @@ class Order implements ObserverInterface
                 $order->getId(),
                 [
                     'item' => static::buildOrderForDataCue($order, true),
-                ]
+                ],
+                $websiteId
             );
         }
     }
@@ -173,6 +188,7 @@ class Order implements ObserverInterface
          * @var $order \Magento\Sales\Model\Order
          */
         $order = $observer->getData('data_object');
+        $websiteId = static::getWebsiteId($order);
 
         Queue::addJob(
             'delete',
@@ -180,7 +196,8 @@ class Order implements ObserverInterface
             $order->getId(),
             [
                 'orderId' => $order->getId(),
-            ]
+            ],
+            $websiteId
         );
     }
 }

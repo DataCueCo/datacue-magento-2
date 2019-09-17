@@ -4,6 +4,7 @@ namespace DataCue\MagentoModule\Block;
 
 use DataCue\MagentoModule\Modules\Product as ProductModule;
 use Magento\Framework\App\ObjectManager;
+use DataCue\MagentoModule\WebsiteOption;
 
 /**
  * Product
@@ -88,27 +89,34 @@ class Product extends BaseTemplate
      */
     public function getRecommendationSettings()
     {
-        $collection = $this->collectionFactory->create();
-        $statusItem = $collection->addFieldToFilter('path', 'datacue/products_status_for_product_page')->getColumnValues('value');
-        $status = count($statusItem) > 0 ? $statusItem[0] : '0';
-        
-        $collection = $this->collectionFactory->create();
-        $typeItem = $collection->addFieldToFilter('path', 'datacue/products_type_for_product_page')->getColumnValues('value');
-        $type = count($typeItem) > 0 ? $typeItem[0] : 'all';
+        $websiteId = $this->getCurrentWebsiteId();
+
+        $options = WebsiteOption::getOptionsByWebsiteId($websiteId);
+        $status = $options['products_status_for_product_page'];
+        $type = $options['products_type_for_product_page'];
 
         return [
-            'products_status_for_product_page' => $status,
-            'products_type_for_product_page' => $type,
+            'products_status_for_product_page' => $status ? $status : '0',
+            'products_type_for_product_page' => $type ? $type : 'all',
         ];
     }
 
     public function getCustomCssURL()
     {
+        $websiteId = $this->getCurrentWebsiteId();
         $objManager = ObjectManager::getInstance();
         /**
          * @var \Magento\Framework\Filesystem $filesystem
          */
         $filesystem = $objManager->create('Magento\Framework\Filesystem');
-        return '/pub/' . $filesystem->getUri(\Magento\Framework\App\Filesystem\DirectoryList::UPLOAD) . '/' . static::CSS_DICTIONARY . static::CSS_FILE_NAME;
+        return '/pub/' . $filesystem->getUri(\Magento\Framework\App\Filesystem\DirectoryList::UPLOAD) . '/' . static::CSS_DICTIONARY . "{$websiteId}_" . static::CSS_FILE_NAME;
+    }
+
+    private function getCurrentWebsiteId()
+    {
+        $objectManager = ObjectManager::getInstance();
+        $storeManager = $objectManager->get('\Magento\Store\Model\StoreManagerInterface');
+        $store = $storeManager->getStore();
+        return $store->getWebsiteId();
     }
 }
