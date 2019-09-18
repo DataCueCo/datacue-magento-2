@@ -3,6 +3,8 @@
 namespace DataCue\MagentoModule\Block;
 
 use DataCue\MagentoModule\Utils\Log;
+use DataCue\MagentoModule\Website;
+use Magento\Framework\App\ObjectManager;
 
 abstract class BaseTemplate extends \Magento\Framework\View\Element\Template
 {
@@ -58,10 +60,9 @@ abstract class BaseTemplate extends \Magento\Framework\View\Element\Template
      */
     protected function getApiKey()
     {
-        $collection = $this->collectionFactory->create();
-        $items = $collection->addFieldToFilter('path', 'datacue/api_key')->getColumnValues('value');
+        $res = Website::getApiKeyAndApiSecretByWebsiteId($this->getCurrentWebsiteId());
 
-        return count($items) > 0 ? $items[0] : '';
+        return !empty($res) ? $res['api_key'] : '';
     }
 
     abstract public function getDataCueConfig();
@@ -69,5 +70,13 @@ abstract class BaseTemplate extends \Magento\Framework\View\Element\Template
     public function getAdditionalEventConfig()
     {
         return null;
+    }
+
+    protected function getCurrentWebsiteId()
+    {
+        $objectManager = ObjectManager::getInstance();
+        $storeManager = $objectManager->get('\Magento\Store\Model\StoreManagerInterface');
+        $store = $storeManager->getStore();
+        return $store->getWebsiteId();
     }
 }

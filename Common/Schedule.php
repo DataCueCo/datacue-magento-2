@@ -3,6 +3,7 @@
 namespace DataCue\MagentoModule\Common;
 
 use DataCue\MagentoModule\Queue;
+use DataCue\MagentoModule\Website;
 use DataCue\MagentoModule\Utils\Log;
 use DataCue\MagentoModule\Modules\Product;
 use DataCue\MagentoModule\Modules\User;
@@ -56,19 +57,24 @@ class Schedule
 
     private function runCronJob()
     {
-        // create datacue client
-        $this->client = new Client(
-            $this->getApiKey(),
-            $this->getApiSecret(),
-            ['max_try_times' => 3],
-            file_exists(__DIR__ . '/../staging') ? 'development' : 'production'
-        );
-
         // get job
         $job = Queue::getNextAliveJob();
         if (empty($job)) {
             return;
         }
+        $credentials = Website::getApiKeyAndApiSecretByWebsiteId($job['website_id']);
+        if (empty($credentials)) {
+            return;
+        }
+
+        // create datacue client
+        $this->client = new Client(
+            $credentials['api_key'],
+            $credentials['api_secret'],
+            ['max_try_times' => 3],
+            file_exists(__DIR__ . '/../staging') ? 'development' : 'production'
+        );
+
         Log::info('runCronJob');
         Queue::startJob($job['id']);
 
@@ -104,22 +110,6 @@ class Schedule
             Log::info($e->getMessage());
             Queue::updateJobStatus($job['id'], Queue::STATUS_FAILURE);
         }
-    }
-
-    private function getApiKey()
-    {
-        $collection = $this->collectionFactory->create();
-        $items = $collection->addFieldToFilter('path', 'datacue/api_key')->getColumnValues('value');
-
-        return count($items) > 0 ? $items[0] : '';
-    }
-
-    private function getApiSecret()
-    {
-        $collection = $this->collectionFactory->create();
-        $items = $collection->addFieldToFilter('path', 'datacue/api_secret')->getColumnValues('value');
-
-        return count($items) > 0 ? $items[0] : '';
     }
 
     /**

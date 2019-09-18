@@ -5,7 +5,7 @@ namespace DataCue\MagentoModule\Setup;
 use Magento\Framework\Setup\UninstallInterface;
 use Magento\Framework\Setup\ModuleContextInterface;
 use Magento\Framework\Setup\SchemaSetupInterface;
-use Magento\Framework\App\ObjectManager;
+use DataCue\MagentoModule\Website;
 
 class Uninstall implements UninstallInterface
 {
@@ -24,37 +24,24 @@ class Uninstall implements UninstallInterface
             $setup->getConnection()->dropTable($tableName);
         }
 
-        // clear client
-        $objectManager = ObjectManager::getInstance();
-        $this->collectionFactory = $objectManager->create('Magento\Config\Model\ResourceModel\Config\Data\CollectionFactory');
-        $client = new \DataCue\Client(
-            $this->getApiKey(),
-            $this->getApiSecret(),
-            ['max_try_times' => 3],
-            file_exists(__DIR__ . '/../staging') ? 'development' : 'production'
-        );
-        try {
-            $client->client->clear();
-        } catch (\Exception $e) {
-
+        $websiteIds = Websites::getActiveWebsiteIds();
+        foreach ($websiteIds as $id) {
+            $credentials = Website::getApiKeyAndApiSecretByWebsiteId($id);
+            if (!empty($credentials)) {
+                $client = new \DataCue\Client(
+                    $credentials['api_key'],
+                    $credentials['api_secret'],
+                    ['max_try_times' => 3],
+                    file_exists(__DIR__ . '/../staging') ? 'development' : 'production'
+                );
+                try {
+                    $client->client->clear();
+                } catch (\Exception $e) {
+        
+                }
+            }
         }
 
         $setup->endSetup();
-    }
-
-    private function getApiKey()
-    {
-        $collection = $this->collectionFactory->create();
-        $items = $collection->addFieldToFilter('path', 'datacue/api_key')->getColumnValues('value');
-
-        return count($items) > 0 ? $items[0] : '';
-    }
-
-    private function getApiSecret()
-    {
-        $collection = $this->collectionFactory->create();
-        $items = $collection->addFieldToFilter('path', 'datacue/api_secret')->getColumnValues('value');
-
-        return count($items) > 0 ? $items[0] : '';
     }
 }

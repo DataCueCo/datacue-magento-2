@@ -111,12 +111,4 @@ class Product extends BaseTemplate
         $filesystem = $objManager->create('Magento\Framework\Filesystem');
         return '/pub/' . $filesystem->getUri(\Magento\Framework\App\Filesystem\DirectoryList::UPLOAD) . '/' . static::CSS_DICTIONARY . "{$websiteId}_" . static::CSS_FILE_NAME;
     }
-
-    private function getCurrentWebsiteId()
-    {
-        $objectManager = ObjectManager::getInstance();
-        $storeManager = $objectManager->get('\Magento\Store\Model\StoreManagerInterface');
-        $store = $storeManager->getStore();
-        return $store->getWebsiteId();
-    }
 }
