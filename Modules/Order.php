@@ -26,7 +26,7 @@ class Order implements ObserverInterface
         /**
          * @var \Magento\Sales\Api\Data\OrderItemInterface[] $orderDetailList
          */
-        $orderDetailList = $order->getAllVisibleItems();
+        $orderDetailList = $order->getAllItems();
         $item['cart'] = [];
         foreach ($orderDetailList as $orderItem) {
             if ($orderItem->getProductType() === 'configurable') {

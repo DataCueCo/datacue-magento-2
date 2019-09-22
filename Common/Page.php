@@ -35,6 +35,8 @@ class Page implements ObserverInterface
 
     public function execute(\Magento\Framework\Event\Observer $observer)
     {
+        $reSync = new ReSync($this->collectionFactory, $this->configWriter);
+        $reSync->execute();
         $schedule = new Schedule($this->collectionFactory, $this->configWriter);
         $schedule->start();
     }

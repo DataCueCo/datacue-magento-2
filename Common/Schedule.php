@@ -79,7 +79,7 @@ class Schedule
         Queue::startJob($job['id']);
 
         try {
-            if ($job['action'] === 'init') {
+            if ($job['action'] === 'init' || $job['action'] === 'reinit') {
                 $this->doInit($job['model'], $job['job']);
             } else {
                 switch ($job['model']) {
@@ -177,6 +177,7 @@ class Schedule
                 $res = $this->client->users->batchCreate($guestData);
                 Log::info('batch create guest users response: ' . $res);
             }
+            Log::info($orderData);
             $res = $this->client->orders->batchCreate($orderData);
             Log::info('batch create orders response: ' . $res);
         }
@@ -209,6 +210,10 @@ class Schedule
             case 'delete':
                 $res = $this->client->products->delete($job->productId, $job->variantId);
                 Log::info('delete product response: ' . $res);
+                break;
+            case 'delete_all':
+                $res = $this->client->products->deleteAll();
+                Log::info('delete all products response: ' . $res);
                 break;
             default:
                 break;
@@ -243,6 +248,10 @@ class Schedule
                 $res = $this->client->users->delete($job->userId);
                 Log::info('delete user response: ' . $res);
                 break;
+            case 'delete_all':
+                $res = $this->client->users->deleteAll();
+                Log::info('delete all users response: ' . $res);
+                break;
             default:
                 break;
         }
@@ -275,6 +284,10 @@ class Schedule
             case 'delete':
                 $res = $this->client->orders->delete($job->orderId);
                 Log::info('delete order response: ', $res);
+                break;
+            case 'delete_all':
+                $res = $this->client->orders->deleteAll();
+                Log::info('delete all orders response: ' . $res);
                 break;
             default:
                 break;

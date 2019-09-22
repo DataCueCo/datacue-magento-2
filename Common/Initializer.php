@@ -59,7 +59,7 @@ class Initializer
         }
     }
 
-    private function initProducts()
+    public function initProducts($type = 'init')
     {
         $table = $this->resource->getTableName('catalog_product_website');
         $products = $this->connection->fetchAll("SELECT `product_id` FROM `" . $table . "` WHERE `website_id` = {$this->websiteId}");
@@ -67,18 +67,21 @@ class Initializer
             return $item['product_id'];
         }, $products);
 
-        $res = $this->datacueClient->overview->products();
-        $existingIds = !is_null($res->getData()->ids) ? $res->getData()->ids : [];
-
-        $productIdsList = array_chunk(array_diff($productIds, $existingIds), static::CHUNK_SIZE);
+        if ($type === 'init') {
+            $res = $this->datacueClient->overview->products();
+            $existingIds = !is_null($res->getData()->ids) ? $res->getData()->ids : [];
+            $productIdsList = array_chunk(array_diff($productIds, $existingIds), static::CHUNK_SIZE);
+        } else {
+            $productIdsList = array_chunk($productIds, static::CHUNK_SIZE);
+        }
 
         foreach($productIdsList as $item) {
             $job = ['ids' => $item];
-            Queue::addJobWithoutModelId('init', 'products', $job, $this->websiteId);
+            Queue::addJobWithoutModelId($type, 'products', $job, $this->websiteId);
         }
     }
 
-    private function initUsers()
+    public function initUsers($type = 'init')
     {
         $table = $this->resource->getTableName('customer_entity');
         $users = $this->connection->fetchAll("SELECT `entity_id` FROM `" . $table . "` WHERE `website_id` = {$this->websiteId}");
@@ -86,18 +89,21 @@ class Initializer
             return $item['entity_id'];
         }, $users);
 
-        $res = $this->datacueClient->overview->users();
-        $existingIds = !is_null($res->getData()->ids) ? $res->getData()->ids : [];
-
-        $userIdsList = array_chunk(array_diff($userIds, $existingIds), static::CHUNK_SIZE);
+        if ($type === 'init') {
+            $res = $this->datacueClient->overview->users();
+            $existingIds = !is_null($res->getData()->ids) ? $res->getData()->ids : [];
+            $userIdsList = array_chunk(array_diff($userIds, $existingIds), static::CHUNK_SIZE);
+        } else {
+            $userIdsList = array_chunk($userIds, static::CHUNK_SIZE);
+        }
 
         foreach($userIdsList as $item) {
             $job = ['ids' => $item];
-            Queue::addJobWithoutModelId('init', 'users', $job, $this->websiteId);
+            Queue::addJobWithoutModelId($type, 'users', $job, $this->websiteId);
         }
     }
 
-    private function initOrders()
+    public function initOrders($type = 'init')
     {
         $table = $this->resource->getTableName('store');
         $store = $this->connection->fetchRow("SELECT `store_id` FROM `" . $table . "` WHERE `website_id` = {$this->websiteId}");
@@ -111,14 +117,17 @@ class Initializer
             return $item['entity_id'];
         }, $orders);
 
-        $res = $this->datacueClient->overview->orders();
-        $existingIds = !is_null($res->getData()->ids) ? $res->getData()->ids : [];
-
-        $orderIdsList = array_chunk(array_diff($orderIds, $existingIds), static::CHUNK_SIZE);
+        if ($type === 'init') {
+            $res = $this->datacueClient->overview->orders();
+            $existingIds = !is_null($res->getData()->ids) ? $res->getData()->ids : [];
+            $orderIdsList = array_chunk(array_diff($orderIds, $existingIds), static::CHUNK_SIZE);
+        } else {
+            $orderIdsList = array_chunk($orderIds, static::CHUNK_SIZE);
+        }
 
         foreach($orderIdsList as $item) {
             $job = ['ids' => $item];
-            Queue::addJobWithoutModelId('init', 'orders', $job, $this->websiteId);
+            Queue::addJobWithoutModelId($type, 'orders', $job, $this->websiteId);
         }
     }
 }
