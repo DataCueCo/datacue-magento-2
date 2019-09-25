@@ -3,6 +3,8 @@
 namespace DataCue\MagentoModule\Common;
 
 use Magento\Framework\Event\ObserverInterface;
+use DataCue\Client;
+use DataCue\MagentoModule\Utils\Info;
 
 /**
  * Page
@@ -31,6 +33,7 @@ class Page implements ObserverInterface
     ) {
         $this->collectionFactory = $collectionFactory;
         $this->configWriter = $configWriter;
+        Client::setIntegrationAndVersion('Magento2', Info::getPackageVersion());
     }
 
     public function execute(\Magento\Framework\Event\Observer $observer)

@@ -8,7 +8,7 @@ use DataCue\MagentoModule\Queue;
 use DataCue\MagentoModule\Website;
 use DataCue\MagentoModule\Utils\Log;
 
-class Product implements ObserverInterface
+class Product extends Base implements ObserverInterface
 {
     /**
      * @param \Magento\Catalog\Model\Product $product
@@ -186,11 +186,6 @@ class Product implements ObserverInterface
      * @var int[] $websiteIdsBeforeSave
      */
     private $websiteIdsBeforeSave;
-
-    public function __construct()
-    {
-
-    }
 
     public function execute(\Magento\Framework\Event\Observer $observer)
     {

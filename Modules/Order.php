@@ -6,7 +6,7 @@ use Magento\Framework\App\ObjectManager;
 use Magento\Framework\Event\ObserverInterface;
 use DataCue\MagentoModule\Queue;
 
-class Order implements ObserverInterface
+class Order extends Base implements ObserverInterface
 {
     /**
      * @param \Magento\Sales\Model\Order $order
@@ -97,11 +97,6 @@ class Order implements ObserverInterface
     }
 
     private $isNew = false;
-
-    public function __construct()
-    {
-
-    }
 
     public function execute(\Magento\Framework\Event\Observer $observer)
     {
