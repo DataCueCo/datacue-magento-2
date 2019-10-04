@@ -112,7 +112,7 @@ class Initializer
         }
 
         $table = $this->resource->getTableName('sales_order');
-        $orders = $this->connection->fetchAll("SELECT `entity_id` FROM `" . $table . "` WHERE `state` != 'canceled' AND `store_id` = {$store['store_id']}");
+        $orders = $this->connection->fetchAll("SELECT `entity_id` FROM `" . $table . "` WHERE `store_id` = {$store['store_id']}");
         $orderIds = array_map(function ($item) {
             return $item['entity_id'];
         }, $orders);

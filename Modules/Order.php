@@ -21,6 +21,7 @@ class Order extends Base implements ObserverInterface
         $item = [
             'user_id' => is_null($customerId) ? $order->getCustomerEmail() : $customerId,
             'timestamp' => str_replace('+00:00', 'Z', gmdate('c', strtotime($order->getCreatedAt()))),
+            'order_status' => $order->getStatus() === 'canceled' ? 'cancelled' : 'completed',
         ];
 
         /**
