@@ -16,7 +16,7 @@ class Resync
     /**
      * Interval between two cron job.
      */
-    const INTERVAL = 3600;
+    const INTERVAL = 900;
 
     /**
      * @var \Magento\Config\Model\ResourceModel\Config\Data\CollectionFactory $collectionFactory
