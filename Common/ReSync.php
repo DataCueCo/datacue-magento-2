@@ -3,6 +3,7 @@
 namespace DataCue\MagentoModule\Common;
 
 use DataCue\Client;
+use DataCue\MagentoModule\Modules\Category;
 use DataCue\MagentoModule\Website;
 use DataCue\MagentoModule\Queue;
 use DataCue\MagentoModule\Utils\Log;
@@ -67,6 +68,9 @@ class Resync
                 if (property_exists($data, 'products')) {
                     $this->executeProducts($client, $id, $data->products);
                 }
+                if (property_exists($data, 'categories')) {
+                    $this->executeCategories($client, $id, $data->categories);
+                }
                 if (property_exists($data, 'orders')) {
                     $this->executeOrders($client, $id, $data->orders);
                 }
@@ -99,6 +103,35 @@ class Resync
                     [
                         'userId' => $user->getId(),
                         'item' => User::buildUserForDataCue($user, false),
+                    ],
+                    $websiteId
+                );
+            }
+        }
+    }
+
+    private function executeCategories($client, $websiteId, $data)
+    {
+        if (is_null($data)) {
+            return;
+        }
+
+        if ($data === 'full') {
+            Queue::addJobWithoutModelId('delete_all', 'categories', [], $websiteId);
+            $this->getInitializer($client, $websiteId)->initCategories('reinit');
+        } elseif (is_array($data)) {
+            foreach ($data as $categoryId) {
+                Queue::addJob('delete', 'categories', $categoryId, ['categoryId' => $categoryId], $websiteId);
+                $category = Category::getCategoryById($categoryId);
+                if (empty($category) || empty($category->getId())) {
+                    continue;
+                }
+                Queue::addJob(
+                    'create',
+                    'categories',
+                    $category->getId(),
+                    [
+                        'item' => Category::buildCategoryForDataCue($category, true),
                     ],
                     $websiteId
                 );

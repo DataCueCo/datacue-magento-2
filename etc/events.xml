@@ -9,6 +9,15 @@
     <event name="catalog_product_delete_before">
         <observer name="product_deleted" instance="DataCue\MagentoModule\Modules\Product" />
     </event>
+    <event name="catalog_category_save_before">
+        <observer name="before_category_saved" instance="DataCue\MagentoModule\Modules\Category" />
+    </event>
+    <event name="catalog_category_save_after">
+        <observer name="category_saved" instance="DataCue\MagentoModule\Modules\Category" />
+    </event>
+    <event name="catalog_category_delete_before">
+        <observer name="category_deleted" instance="DataCue\MagentoModule\Modules\Category" />
+    </event>
     <event name="customer_save_before">
         <observer name="user_before_saved" instance="DataCue\MagentoModule\Modules\User" />
     </event>

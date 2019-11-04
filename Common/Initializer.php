@@ -3,6 +3,7 @@
 namespace DataCue\MagentoModule\Common;
 
 use DataCue\MagentoModule\Queue;
+use DataCue\MagentoModule\Website;
 
 /**
  * Initializer
@@ -54,6 +55,7 @@ class Initializer
     {
         if (!Queue::isActionExistingByWebsiteId('init', $this->websiteId)) {
             $this->initProducts();
+            $this->initCategories();
             $this->initUsers();
             $this->initOrders();
         }
@@ -78,6 +80,28 @@ class Initializer
         foreach($productIdsList as $item) {
             $job = ['ids' => $item];
             Queue::addJobWithoutModelId($type, 'products', $job, $this->websiteId);
+        }
+    }
+
+    public function initCategories($type = 'init')
+    {
+        $table = $this->resource->getTableName('catalog_category_entity');
+        $categories = $this->connection->fetchAll("SELECT `entity_id` FROM `" . $table . "`");
+        $categoryIds = array_map(function ($item) {
+            return $item['entity_id'];
+        }, $categories);
+
+        if ($type === 'init') {
+            $res = $this->datacueClient->overview->categories();
+            $existingIds = !is_null($res->getData()->ids) ? $res->getData()->ids : [];
+            $categoryIdsList = array_chunk(array_diff($categoryIds, $existingIds), static::CHUNK_SIZE);
+        } else {
+            $categoryIdsList = array_chunk($categoryIds, static::CHUNK_SIZE);
+        }
+
+        foreach($categoryIdsList as $item) {
+            $job = ['ids' => $item];
+            Queue::addJobWithoutModelId($type, 'categories', $job, $this->websiteId);
         }
     }
 

@@ -2,6 +2,7 @@
 
 namespace DataCue\MagentoModule\Common;
 
+use DataCue\MagentoModule\Modules\Category;
 use DataCue\MagentoModule\Queue;
 use DataCue\MagentoModule\Website;
 use DataCue\MagentoModule\Utils\Log;
@@ -89,6 +90,9 @@ class Schedule
                     case 'variants':
                         $this->doProductsJob($job['action'], $job['job']);
                         break;
+                    case 'categories':
+                        $this->doCategoriesJob($job['action'], $job['job']);
+                        break;
                     case 'users':
                         $this->doUsersJob($job['action'], $job['job']);
                         break;
@@ -144,6 +148,17 @@ class Schedule
             }
             $res = $this->client->products->batchCreate($data);
             Log::info('batch create products response: ' . $res);
+        } elseif ($model === 'categories') {
+            // batch create categories
+            $data = [];
+            foreach ($job->ids as $id) {
+                $category = Category::getCategoryById($id);
+                if ($category->getParentId() > 1) {
+                    $data[] = Category::buildCategoryForDataCue($category, true);
+                }
+            }
+            $res = $this->client->categories->batchCreate($data);
+            Log::info('batch create categories response: ' . $res);
         } elseif ($model === 'users') {
             // batch create users
             $data = [];
@@ -214,6 +229,30 @@ class Schedule
             case 'delete_all':
                 $res = $this->client->products->deleteAll();
                 Log::info('delete all products response: ' . $res);
+                break;
+            default:
+                break;
+        }
+    }
+
+    private function doCategoriesJob($action, $job)
+    {
+        switch ($action) {
+            case 'create':
+                $res = $this->client->categories->create($job->item);
+                Log::info('create category response: ' . $res);
+                break;
+            case 'update':
+                $res = $this->client->categories->update($job->categoryId, $job->item);
+                Log::info('update category response: ' . $res);
+                break;
+            case 'delete':
+                $res = $this->client->categories->delete($job->categoryId);
+                Log::info('delete category response: ' . $res);
+                break;
+            case 'delete_all':
+                $res = $this->client->categories->deleteAll();
+                Log::info('delete all categories response: ' . $res);
                 break;
             default:
                 break;

@@ -43,6 +43,11 @@ class Status extends \Magento\Backend\App\Action
         $schedule->start();
 
         $res = [
+            'categories' => [
+                'total' => 0,
+                'completed' => 0,
+                'failed' => 0,
+            ],
             'products' => [
                 'total' => 0,
                 'completed' => 0,
