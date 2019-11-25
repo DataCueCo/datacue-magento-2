@@ -2,6 +2,8 @@
 
 namespace DataCue\MagentoModule\Block;
 
+use DataCue\MagentoModule\Modules\Category as CategoryModule;
+
 /**
  * Category
  */
@@ -41,7 +43,8 @@ class Category extends BaseTemplate
             'user_id' => $this->getCustomerId(),
             'options' => ['_staging' => $this->getStaging()],
             'page_type' => 'category',
-            'category_name' => $this->getCategory()->getName(),
+            'category_id' => $this->getCategory()->getId(),
+            'category_update' => CategoryModule::buildCategoryForDataCue($this->getCategory()),
         ];
     }
 }

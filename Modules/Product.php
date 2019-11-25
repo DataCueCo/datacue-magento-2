@@ -27,24 +27,14 @@ class Product extends Base implements ObserverInterface
             'description' => $product->getDescription(),
             'photo_url' => empty($product->getImage()) ? null : $product->getStore()->getBaseUrl(\Magento\Framework\UrlInterface::URL_TYPE_MEDIA) . 'catalog/product' . $product->getImage(),
             'stock' => $product->getExtensionAttributes()->getStockItem() ? $product->getExtensionAttributes()->getStockItem()->getQty() : 0,
-            'categories' => array_map(function ($categoryId) use ($objManager) {
-                /**
-                 * @var \Magento\Catalog\Model\Category $category
-                 */
-                $category = $objManager->create('Magento\Catalog\Model\Category')->load($categoryId);
-                return $category->getName();
+            'category_ids' => array_map(function ($categoryId) {
+                return "$categoryId";
             }, $product->getCategoryIds()),
             'brand' => null,
         ];
 
-        if (count($item['categories']) > 0) {
-            $item['main_category'] = $item['categories'][0];
-        } else {
-            $item['main_category'] = null;
-        }
-
         if ($withId) {
-            $item['product_id'] = $product->getId();
+            $item['product_id'] = '' . $product->getId();
             $item['variant_id'] = 'no-variants';
         }
 
@@ -69,25 +59,15 @@ class Product extends Base implements ObserverInterface
             'description' => $product->getDescription(),
             'photo_url' => empty($product->getImage()) ? null : $product->getStore()->getBaseUrl(\Magento\Framework\UrlInterface::URL_TYPE_MEDIA) . 'catalog/product' . $product->getImage(),
             'stock' => $variant->getExtensionAttributes()->getStockItem() ? $variant->getExtensionAttributes()->getStockItem()->getQty() : 0,
-            'categories' => array_map(function ($categoryId) use ($objManager) {
-                /**
-                 * @var \Magento\Catalog\Model\Category $category
-                 */
-                $category = $objManager->create('Magento\Catalog\Model\Category')->load($categoryId);
-                return $category->getName();
+            'category_ids' => array_map(function ($categoryId) {
+                return "$categoryId";
             }, $product->getCategoryIds()),
             'brand' => null,
         ];
 
-        if (count($item['categories']) > 0) {
-            $item['main_category'] = $item['categories'][0];
-        } else {
-            $item['main_category'] = null;
-        }
-
         if ($withId) {
-            $item['product_id'] = $product->getId();
-            $item['variant_id'] = $variant->getId();
+            $item['product_id'] = '' . $product->getId();
+            $item['variant_id'] = '' . $variant->getId();
         }
 
         return $item;

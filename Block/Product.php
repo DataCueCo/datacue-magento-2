@@ -48,27 +48,33 @@ class Product extends BaseTemplate
         $parentProduct = ProductModule::getParentProduct($product->getId());
 
         if (!is_null($parentProduct)) {
+            $variantIds = ProductModule::getVariantIds($parentProduct->getId());
+            $productUpdate = array_map(function ($id) use ($parentProduct) {
+                $variant = ProductModule::getProductById($id);
+                return ProductModule::buildVariantForDataCue($parentProduct, $variant, true);
+            }, $variantIds);
             return [
                 'api_key' => $this->getApiKey(),
                 'user_id' => $this->getCustomerId(),
                 'options' => ['_staging' => $this->getStaging()],
                 'page_type' => 'product',
                 'product_id' => $parentProduct->getId(),
-                'variant_id' => $product->getId(),
-                'product_update' => ProductModule::buildVariantForDataCue($parentProduct, $product),
+                'product_update' => $productUpdate,
             ];
         } else {
             $variantIds = ProductModule::getVariantIds($product->getId());
             if (count($variantIds) > 0) {
-                $variant = ProductModule::getProductById($variantIds[0]);
+                $productUpdate = array_map(function ($id) use ($product) {
+                    $variant = ProductModule::getProductById($id);
+                    return ProductModule::buildVariantForDataCue($product, $variant, true);
+                }, $variantIds);
                 return [
                     'api_key' => $this->getApiKey(),
                     'user_id' => $this->getCustomerId(),
                     'options' => ['_staging' => $this->getStaging()],
                     'page_type' => 'product',
                     'product_id' => $product->getId(),
-                    'variant_id' => $variant->getId(),
-                    'product_update' => ProductModule::buildVariantForDataCue($product, $variant),
+                    'product_update' => $productUpdate,
                 ];
             } else {
                 return [
@@ -77,8 +83,7 @@ class Product extends BaseTemplate
                     'options' => ['_staging' => $this->getStaging()],
                     'page_type' => 'product',
                     'product_id' => $product->getId(),
-                    'variant_id' => 'no-variants',
-                    'product_update' => ProductModule::buildProductForDataCue($product),
+                    'product_update' => [ProductModule::buildProductForDataCue($product, true)],
                 ];
             }
         }
