@@ -1,7 +1,7 @@
 {
     "name": "datacue/magento_module",
     "description": "Magento 2 Module for DataCue",
-    "version": "1.1.5",
+    "version": "1.1.6",
     "license": "GPL-2.0",
     "type": "magento2-module",
     "authors": [

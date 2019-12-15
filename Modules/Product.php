@@ -7,6 +7,7 @@ use Magento\Framework\Event\ObserverInterface;
 use DataCue\MagentoModule\Queue;
 use DataCue\MagentoModule\Website;
 use DataCue\MagentoModule\Utils\Log;
+use Exception;
 
 class Product extends Base implements ObserverInterface
 {
@@ -169,22 +170,25 @@ class Product extends Base implements ObserverInterface
 
     public function execute(\Magento\Framework\Event\Observer $observer)
     {
-        switch ($observer->getEvent()->getName()) {
-            case 'catalog_product_save_before':
-                $this->beforeModelProductSaved($observer);
-                break;
-            case 'catalog_product_save_after':
-                $this->onModelProductSaved($observer);
-                break;
-            case 'catalog_product_delete_before':
-                $this->onModelProductDeleted($observer);
-                break;
-            case 'checkout_cart_save_after':
-                $this->onCartSaved($observer);
-            default:
-                break;
-        }
+        try {
+            switch ($observer->getEvent()->getName()) {
+                case 'catalog_product_save_before':
+                    $this->beforeModelProductSaved($observer);
+                    break;
+                case 'catalog_product_save_after':
+                    $this->onModelProductSaved($observer);
+                    break;
+                case 'catalog_product_delete_before':
+                    $this->onModelProductDeleted($observer);
+                    break;
+                case 'checkout_cart_save_after':
+                    $this->onCartSaved($observer);
+                default:
+                    break;
+            }
+        } catch (Exception $e) {
 
+        }
     }
 
     private function beforeModelProductSaved(\Magento\Framework\Event\Observer $observer)
