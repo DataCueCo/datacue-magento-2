@@ -7,8 +7,8 @@
             <css src="DataCue_MagentoModule::css/app.8de1814f.css" />
             <css src="DataCue_MagentoModule::css/chunk-vendors.728eb7d9.css" />
             <link src="DataCue_MagentoModule::js/common.js" />
-            <link src="DataCue_MagentoModule::js/app.24c7e704.js" />
-            <link src="DataCue_MagentoModule::js/chunk-vendors.1baa3db6.js" />
+            <link src="DataCue_MagentoModule::js/app.24c7e704.min.js" />
+            <link src="DataCue_MagentoModule::js/chunk-vendors.1baa3db6.min.js" />
         </head>
         <body>
             <referenceContainer name="content">
