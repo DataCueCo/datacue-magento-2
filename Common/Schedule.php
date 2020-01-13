@@ -141,9 +141,14 @@ class Schedule
                     $variantIds = Product::getVariantIds($product->getId());
                     if (count($variantIds) === 0) {
                         $data[] = Product::buildProductForDataCue($product, true);
+                    } else {
+                        foreach ($variantIds as $vId) {
+                            $variant = Product::getProductById($vId);
+                            if ($variant) {
+                                $data[] = Product::buildVariantForDataCue($product, $variant, true);
+                            }
+                        }
                     }
-                } else {
-                    $data[] = Product::buildVariantForDataCue($parentProduct, $product, true);
                 }
             }
             $res = $this->client->products->batchCreate($data);
@@ -174,19 +179,21 @@ class Schedule
             $orderData = [];
             foreach ($job->ids as $id) {
                 $order = Order::getOrderById($id);
-                if (is_null($order->getCustomerId())) {
-                    $existing = false;
-                    foreach ($guestData as $guest) {
-                        if ($guest['user_id'] === $order->getCustomerEmail()) {
-                            $existing = true;
-                            break;
+                if (Order::isOrderValid($order)) {
+                    if (is_null($order->getCustomerId())) {
+                        $existing = false;
+                        foreach ($guestData as $guest) {
+                            if ($guest['user_id'] === $order->getCustomerEmail()) {
+                                $existing = true;
+                                break;
+                            }
+                        }
+                        if (!$existing) {
+                            $guestData[] = Order::buildGuestUserForDataCue($order);
                         }
                     }
-                    if (!$existing) {
-                        $guestData[] = Order::buildGuestUserForDataCue($order);
-                    }
+                    $orderData[] = Order::buildOrderForDataCue($order, true);
                 }
-                $orderData[] = Order::buildOrderForDataCue($order, true);
             }
             if (count($guestData) > 0) {
                 $res = $this->client->users->batchCreate($guestData);

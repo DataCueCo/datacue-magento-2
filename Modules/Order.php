@@ -19,7 +19,7 @@ class Order extends Base implements ObserverInterface
         $customerId = $order->getCustomerId();
 
         $item = [
-            'user_id' => is_null($customerId) ? $order->getCustomerEmail() : $customerId,
+            'user_id' => empty($customerId) ? $order->getCustomerEmail() : $customerId,
             'timestamp' => str_replace('+00:00', 'Z', gmdate('c', strtotime($order->getCreatedAt()))),
             'order_status' => $order->getStatus() === 'canceled' ? 'cancelled' : 'completed',
         ];
@@ -67,6 +67,35 @@ class Order extends Base implements ObserverInterface
             'email_subscriber' => false,
             'guest_account' => true,
         ];
+    }
+
+    /**
+     * @param \Magento\Sales\Model\Order $order
+     * @return bool
+     */
+    public static function isOrderValid($order)
+    {
+        if (empty($order->getCustomerId())) {
+            return false;
+        }
+
+        if (empty($order->getCustomerEmail())) {
+            return false;
+        }
+
+        $orderDetailList = $order->getAllItems();
+        foreach ($orderDetailList as $orderItem) {
+            if ($orderItem->getProductType() === 'configurable') {
+                continue;
+            }
+
+            $productId = $orderItem->getProductId();
+            if (!empty($productId)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -135,26 +164,28 @@ class Order extends Base implements ObserverInterface
         $websiteId = static::getWebsiteId($order);
 
         if ($this->isNew) {
-            if (is_null($order->getCustomerId())) {
+            if (static::isOrderValid($order)) {
+                if (is_null($order->getCustomerId())) {
+                    Queue::addJob(
+                        'create',
+                        'guest_users',
+                        $order->getId(),
+                        [
+                            'item' => static::buildGuestUserForDataCue($order),
+                        ],
+                        $websiteId
+                    );
+                }
                 Queue::addJob(
                     'create',
-                    'guest_users',
+                    'orders',
                     $order->getId(),
                     [
-                        'item' => static::buildGuestUserForDataCue($order),
+                        'item' => static::buildOrderForDataCue($order, true),
                     ],
                     $websiteId
                 );
             }
-            Queue::addJob(
-                'create',
-                'orders',
-                $order->getId(),
-                [
-                    'item' => static::buildOrderForDataCue($order, true),
-                ],
-                $websiteId
-            );
         } elseif ($order->getStatus() === 'canceled' && !Queue::isJobExisting('cancel', 'orders', $order->getId())) {
             Queue::addJob(
                 'cancel',
@@ -166,15 +197,17 @@ class Order extends Base implements ObserverInterface
                 $websiteId
             );
         } elseif ($order->getStatus() !== 'canceled' && Queue::isJobExisting('cancel', 'orders', $order->getId())) {
-            Queue::addJob(
-                'create',
-                'orders',
-                $order->getId(),
-                [
-                    'item' => static::buildOrderForDataCue($order, true),
-                ],
-                $websiteId
-            );
+            if (static::isOrderValid($order)) {
+                Queue::addJob(
+                    'create',
+                    'orders',
+                    $order->getId(),
+                    [
+                        'item' => static::buildOrderForDataCue($order, true),
+                    ],
+                    $websiteId
+                );
+            }
         }
     }
 

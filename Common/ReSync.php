@@ -203,26 +203,28 @@ class Resync
                 if (empty($order) || empty($order->getId())) {
                     continue;
                 }
-                if (is_null($order->getCustomerId())) {
+                if (Order::isOrderValid($order)) {
+                    if (is_null($order->getCustomerId())) {
+                        Queue::addJob(
+                            'create',
+                            'guest_users',
+                            $order->getId(),
+                            [
+                                'item' => Order::buildGuestUserForDataCue($order),
+                            ],
+                            $websiteId
+                        );
+                    }
                     Queue::addJob(
                         'create',
-                        'guest_users',
+                        'orders',
                         $order->getId(),
                         [
-                            'item' => Order::buildGuestUserForDataCue($order),
+                            'item' => Order::buildOrderForDataCue($order, true),
                         ],
                         $websiteId
                     );
                 }
-                Queue::addJob(
-                    'create',
-                    'orders',
-                    $order->getId(),
-                    [
-                        'item' => Order::buildOrderForDataCue($order, true),
-                    ],
-                    $websiteId
-                );
             }
         }
     }
