@@ -4,10 +4,10 @@
             <title>DataCue Settings</title>
             <css src="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css" src_type="url" />
             <css src="DataCue_MagentoModule::css/common.css" />
-            <css src="DataCue_MagentoModule::css/app.8de1814f.css" />
+            <css src="DataCue_MagentoModule::css/app.df98ff98.css" />
             <css src="DataCue_MagentoModule::css/chunk-vendors.728eb7d9.css" />
             <link src="DataCue_MagentoModule::js/common.js" />
-            <link src="DataCue_MagentoModule::js/app.24c7e704.min.js" />
+            <link src="DataCue_MagentoModule::js/app.75aa0843.min.js" />
             <link src="DataCue_MagentoModule::js/chunk-vendors.1baa3db6.min.js" />
         </head>
         <body>
