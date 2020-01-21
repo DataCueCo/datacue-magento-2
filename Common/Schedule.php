@@ -158,9 +158,7 @@ class Schedule
             $data = [];
             foreach ($job->ids as $id) {
                 $category = Category::getCategoryById($id);
-                if ($category->getParentId() > 1) {
-                    $data[] = Category::buildCategoryForDataCue($category, true);
-                }
+                $data[] = Category::buildCategoryForDataCue($category, true);
             }
             $res = $this->client->categories->batchCreate($data);
             Log::info('batch create categories response: ' . $res);
@@ -179,19 +177,20 @@ class Schedule
             $orderData = [];
             foreach ($job->ids as $id) {
                 $order = Order::getOrderById($id);
-                if (Order::isOrderValid($order)) {
-                    if (is_null($order->getCustomerId())) {
-                        $existing = false;
-                        foreach ($guestData as $guest) {
-                            if ($guest['user_id'] === $order->getCustomerEmail()) {
-                                $existing = true;
-                                break;
-                            }
-                        }
-                        if (!$existing) {
-                            $guestData[] = Order::buildGuestUserForDataCue($order);
+                if (is_null($order->getCustomerId()) && !empty($order->getCustomerEmail())) {
+                    $existing = false;
+                    foreach ($guestData as $guest) {
+                        if ($guest['user_id'] === $order->getCustomerEmail()) {
+                            $existing = true;
+                            break;
                         }
                     }
+                    if (!$existing) {
+                        $guestData[] = Order::buildGuestUserForDataCue($order);
+                    }
+                }
+                $item = Order::buildOrderForDataCue($order, true);
+                if (count($item['cart']) > 0) {
                     $orderData[] = Order::buildOrderForDataCue($order, true);
                 }
             }

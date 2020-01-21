@@ -86,7 +86,7 @@ class Initializer
     public function initCategories($type = 'init')
     {
         $table = $this->resource->getTableName('catalog_category_entity');
-        $categories = $this->connection->fetchAll("SELECT `entity_id` FROM `" . $table . "`");
+        $categories = $this->connection->fetchAll("SELECT `entity_id` FROM `" . $table . "` WHERE `parent_id` > 1");
         $categoryIds = array_map(function ($item) {
             return $item['entity_id'];
         }, $categories);

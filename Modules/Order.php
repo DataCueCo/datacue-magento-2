@@ -16,10 +16,9 @@ class Order extends Base implements ObserverInterface
     public static function buildOrderForDataCue($order, $withId = false)
     {
         $currency = static::getCurrency();
-        $customerId = $order->getCustomerId();
 
         $item = [
-            'user_id' => empty($customerId) ? $order->getCustomerEmail() : $customerId,
+            'user_id' => static::getOrderUserId($order),
             'timestamp' => str_replace('+00:00', 'Z', gmdate('c', strtotime($order->getCreatedAt()))),
             'order_status' => $order->getStatus() === 'canceled' ? 'cancelled' : 'completed',
         ];
@@ -71,31 +70,21 @@ class Order extends Base implements ObserverInterface
 
     /**
      * @param \Magento\Sales\Model\Order $order
-     * @return bool
+     * @return string
      */
-    public static function isOrderValid($order)
+    public static function getOrderUserId($order)
     {
-        if (empty($order->getCustomerId())) {
-            return false;
+        $customerId = $order->getCustomerId();
+        if (!empty($customerId)) {
+            return $customerId;
         }
 
-        if (empty($order->getCustomerEmail())) {
-            return false;
+        $email = $order->getCustomerEmail();
+        if (!empty($email)) {
+            return $email;
         }
 
-        $orderDetailList = $order->getAllItems();
-        foreach ($orderDetailList as $orderItem) {
-            if ($orderItem->getProductType() === 'configurable') {
-                continue;
-            }
-
-            $productId = $orderItem->getProductId();
-            if (!empty($productId)) {
-                return true;
-            }
-        }
-
-        return false;
+        return 'no-user';
     }
 
     /**
@@ -164,28 +153,26 @@ class Order extends Base implements ObserverInterface
         $websiteId = static::getWebsiteId($order);
 
         if ($this->isNew) {
-            if (static::isOrderValid($order)) {
-                if (is_null($order->getCustomerId())) {
-                    Queue::addJob(
-                        'create',
-                        'guest_users',
-                        $order->getId(),
-                        [
-                            'item' => static::buildGuestUserForDataCue($order),
-                        ],
-                        $websiteId
-                    );
-                }
+            if (is_null($order->getCustomerId()) && !empty($order->getCustomerEmail())) {
                 Queue::addJob(
                     'create',
-                    'orders',
+                    'guest_users',
                     $order->getId(),
                     [
-                        'item' => static::buildOrderForDataCue($order, true),
+                        'item' => static::buildGuestUserForDataCue($order),
                     ],
                     $websiteId
                 );
             }
+            Queue::addJob(
+                'create',
+                'orders',
+                $order->getId(),
+                [
+                    'item' => static::buildOrderForDataCue($order, true),
+                ],
+                $websiteId
+            );
         } elseif ($order->getStatus() === 'canceled' && !Queue::isJobExisting('cancel', 'orders', $order->getId())) {
             Queue::addJob(
                 'cancel',
@@ -197,17 +184,15 @@ class Order extends Base implements ObserverInterface
                 $websiteId
             );
         } elseif ($order->getStatus() !== 'canceled' && Queue::isJobExisting('cancel', 'orders', $order->getId())) {
-            if (static::isOrderValid($order)) {
-                Queue::addJob(
-                    'create',
-                    'orders',
-                    $order->getId(),
-                    [
-                        'item' => static::buildOrderForDataCue($order, true),
-                    ],
-                    $websiteId
-                );
-            }
+            Queue::addJob(
+                'create',
+                'orders',
+                $order->getId(),
+                [
+                    'item' => static::buildOrderForDataCue($order, true),
+                ],
+                $websiteId
+            );
         }
     }
 
