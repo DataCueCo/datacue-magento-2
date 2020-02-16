@@ -19,7 +19,21 @@ class Uninstall implements UninstallInterface
         ModuleContextInterface $context
     ) {
         $setup->startSetup();
+
+        // drop datacue_queue
         $tableName = $setup->getTable('datacue_queue');
+        if ($setup->getConnection()->isTableExists($tableName)) {
+            $setup->getConnection()->dropTable($tableName);
+        }
+
+        // drop datacue_clients
+        $tableName = $setup->getTable('datacue_clients');
+        if ($setup->getConnection()->isTableExists($tableName)) {
+            $setup->getConnection()->dropTable($tableName);
+        }
+
+        // drop datacue_client_options
+        $tableName = $setup->getTable('datacue_client_options');
         if ($setup->getConnection()->isTableExists($tableName)) {
             $setup->getConnection()->dropTable($tableName);
         }
