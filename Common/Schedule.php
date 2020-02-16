@@ -136,6 +136,9 @@ class Schedule
             $data = [];
             foreach ($job->ids as $id) {
                 $product = Product::getProductById($id);
+                if (is_null($product) || empty($product->getId())) {
+                    continue;
+                }
                 $parentProduct = Product::getParentProduct($id);
                 if (is_null($parentProduct)) {
                     $variantIds = Product::getVariantIds($product->getId());

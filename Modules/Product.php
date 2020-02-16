@@ -18,7 +18,6 @@ class Product extends Base implements ObserverInterface
      */
     public static function buildProductForDataCue($product, $withId = false)
     {
-        $objManager = ObjectManager::getInstance();
         $item = [
             'name' => $product->getName(),
             'price' => static::getProductPrice($product),
@@ -50,7 +49,6 @@ class Product extends Base implements ObserverInterface
      */
     public static function buildVariantForDataCue($product, $variant, $withId = false)
     {
-        $objManager = ObjectManager::getInstance();
         $item = [
             'name' => $product->getName(),
             'price' => static::getProductPrice($variant),

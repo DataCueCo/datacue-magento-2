@@ -3,7 +3,7 @@
     <type name="Magento\Framework\Console\CommandList">
         <arguments>
             <argument name="commands" xsi:type="array">
-                <item name="exampleSayHello" xsi:type="object">DataCue\MagentoModule\Console\Debug</item>
+                <item name="DataCueDebug" xsi:type="object">DataCue\MagentoModule\Console\Debug</item>
             </argument>
         </arguments>
     </type>
