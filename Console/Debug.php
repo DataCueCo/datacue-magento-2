@@ -30,9 +30,9 @@ class Debug extends Command
      */
     private $output;
 
-    public function __construct(string $name = null, ResourceConnection $resource)
+    public function __construct(ResourceConnection $resource)
     {
-        parent::__construct($name);
+        parent::__construct();
 
         $this->resource = $resource;
         $this->connection = $resource->getConnection();
